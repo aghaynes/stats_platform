@@ -1,0 +1,64 @@
+project:
+  type: website
+
+website:
+  title: "Statistics and Methodology - tools and support"
+  page-footer: CC-BY SCTO Statistics and Methodology
+  favicon: docs/SCTO_Platforms.png
+  navbar:
+    # logo: docs/quarto.png
+    logo: docs/SCTO_Platforms.png
+    background: white
+    left:
+      - text: Home
+        file: index.qmd
+  sidebar:
+    style: "floating"
+    search: true
+    align: left
+    collapse-level: 1
+    # background: red
+    contents:
+      - text: Home
+        file: index.qmd
+      - text: About us & contact
+        file: about.qmd
+      - section: Guidance
+        contents:
+          - DataSharing.qmd
+          - ReportingGuidelines.qmd
+      # - section: "For clinicians"
+      #   contents:
+      #     - DataSharing.qmd
+      #     - SampleSizeCalculation.qmd
+      # - section: "For programmers"
+      #   contents:
+      #     - baselinetables.qmd
+      #     - software.qmd
+      - section: Tutorials
+        contents:
+          - text: Overview
+            file: tutorials.qmd
+          - SampleSizeCalculation.qmd
+          - baselinetables.qmd
+          - AdjustedSurvivalCurves.qmd
+          - safetyreporting.qmd
+      - text: Courses
+        file: courses.qmd
+      - software.qmd
+      # - text: Software
+      #   file: software.qmd
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    css: styles.css
+    toc: true
+
+execute:
+  freeze: auto
+  bibliography: references.bib
+  citations-hover: true
+
