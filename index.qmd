@@ -1,0 +1,38 @@
+---
+title: "Welcome"
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+This site provides access to tools and advice from statisticians of the
+SCTO Statistics & Methodology Platform.
+
+The overarching aim of the statistics and methodological platform is to
+develop open access resources supporting the conception, completion and
+dissemination of clinical research. We help projects to:
+
+-   develop statistical softwares & packages,
+-   write guidelines & tutorials,
+-   inventory essential guidelines and available training options in
+    Switzerland.
+
+
+
+As part of the Swiss Clinical Trial Organisation (SCTO) network we
+are connected with other platforms (auditing, data management,
+education, monitoring, project management, regulatory affairs, safety)
+providing innovative tools for clinical research professionals.
+Additional tools and resources can be found on [the Tools & Resources website by the SCTO Platforms](https://www.sctoplatforms.ch/). 
+
+::: callout-important
+This is site is currently only for demonstration purposes. It is more
+conceptual than anything else.
+
+Content will be modified without warning or the site may be removed
+without notice.
+
+We make no guarantees on the accuracy of the information presented.
+:::
+
+
