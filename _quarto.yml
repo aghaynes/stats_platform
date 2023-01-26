@@ -49,6 +49,8 @@ website:
       - software.qmd
       # - text: Software
       #   file: software.qmd
+      - text: Links
+        file: Links.qmd
 
 format:
   html:
