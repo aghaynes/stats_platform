@@ -1,0 +1,13 @@
+---
+title: "Links"
+---
+
+::: callout-warning
+This page is under development. Changes should be expected.
+:::
+
+<!-- Steffi, 26.01.2023: I just add one link, others may be added -->
+
+### [Center for Reproducible Science](https://www.crs.uzh.ch/en.html)
+
+The CRS is an approved Center of Competence of the University of Zurich. The objective of the Center for Reproducible Science is to train the next generation of researchers in good research practices, to develop novel methodology related to reproducibility and replicability, and to improve the quality of scientific investigation using meta-science.
