@@ -4,7 +4,7 @@
     "href": "about.html",
     "title": "About us & contact",
     "section": "",
-    "text": "Get in touch with us\nDo you have any questions or suggestions? Feel free to contact us using the form here.\nDirect support for clinical studies and research projects can also be provided by your local CTU:\n\nDKF Basel\nCTU Bern\nCRC Geneva\nCRC Lausanne\nCTU-EOC Lugano\nCTU St.Gallen\nCTC Zürich"
+    "text": "About us\nThis site was developed by statisticians of the SCTO Statistics & Methodology Platform.\nThe SCTO Statistics & Methodology Platform is a network of statisticians working in Swiss Clinical Trial Units, universities, and cantonal hospitals. As part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. More information can be found on the Tools & Resources website by the SCTO Platforms.\n\n\nGet in touch with us\nDo you have any questions or suggestions? Feel free to contact us using the form here.\nDirect support for clinical studies and research projects can also be provided by your local CTU:\n\nDKF Basel\nCTU Bern\nCRC Geneva\nCRC Lausanne\nCTU-EOC Lugano\nCTU St.Gallen\nCTC Zürich"
   },
   {
     "objectID": "AdjustedSurvivalCurves.html",
@@ -95,7 +95,7 @@
     "href": "index.html",
     "title": "Welcome",
     "section": "",
-    "text": "The overarching aim of the statistics and methodological platform is to develop open access resources supporting the conception, completion and dissemination of clinical research. We help projects to:\n\ndevelop statistical softwares & packages,\nwrite guidelines & tutorials,\ninventory essential guidelines and available training options in Switzerland.\n\nAs part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. Additional tools and resources can be found on the Tools & Resources website by the SCTO Platforms.\n\n\n\n\n\n\nImportant\n\n\n\nThis is site is currently only for demonstration purposes. It is more conceptual than anything else.\nContent will be modified without warning or the site may be removed without notice.\nWe make no guarantees on the accuracy of the information presented."
+    "text": "This site provides access to tools and advice from statisticians of the SCTO Statistics & Methodology Platform.\nThe overarching aim of the statistics and methodological platform is to develop open access resources supporting the conception, completion and dissemination of clinical research. We help projects to:\n\ndevelop statistical softwares & packages,\nwrite guidelines & tutorials,\ninventory essential guidelines and available training options in Switzerland.\n\nAs part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. Additional tools and resources can be found on the Tools & Resources website by the SCTO Platforms.\n\n\n\n\n\n\nImportant\n\n\n\nThis is site is currently only for demonstration purposes. It is more conceptual than anything else.\nContent will be modified without warning or the site may be removed without notice.\nWe make no guarantees on the accuracy of the information presented."
   },
   {
     "objectID": "ReportingGuidelines.html",
@@ -257,5 +257,12 @@
     "title": "Tutorials",
     "section": "Safety reporting in clinical trials",
     "text": "Safety reporting in clinical trials\n \nMost clinical trials require safety reporting to authorities. This tutorial gives some information on, primarily, annual safety reporting and introduces an R package for automatically filling out the swissethics annual safety report template."
+  },
+  {
+    "objectID": "Links.html",
+    "href": "Links.html",
+    "title": "Links",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\n\n\nCenter for Reproducible Science\nThe CRS is an approved Center of Competence of the University of Zurich. The objective of the Center for Reproducible Science is to train the next generation of researchers in good research practices, to develop novel methodology related to reproducibility and replicability, and to improve the quality of scientific investigation using meta-science."
   }
 ]
