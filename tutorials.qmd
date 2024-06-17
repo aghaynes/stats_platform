@@ -31,3 +31,11 @@ Survival curves are often depicted in an unadjusted state - i.e. the percentage 
 ![](https://img.shields.io/badge/Target-Programmers & Clinicians-blue.svg) ![](https://img.shields.io/badge/Level-Beginner-green.svg)
 
 Most clinical trials require safety reporting to authorities. This tutorial gives some information on, primarily, annual safety reporting and introduces an R package for automatically filling out the swissethics annual safety report template.
+
+## Others
+
+Many other tutorials are available. We notably recommend reading the ones published on the following websites:
+
+-   [Center for Reproducible Science of the university of Zürich](https://www.crs.uzh.ch/en/resources/CRS-Primers.html)
+
+-   [Epidemiology, Biostatistics and Prevention Institute of the university of Zürich](https://www.ebpi.uzh.ch/en/research/methodsexpertise.html) see "Resources" section at the end of the page.
