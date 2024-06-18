@@ -1,14 +1,14 @@
 project:
   type: website
-  output-dir: _site
+  output-dir: docs
 
 website:
   title: "Statistics and Methodology - tools and support"
   page-footer: CC-BY SCTO Statistics and Methodology
-  favicon: docs/SCTO_Platforms.png
+  favicon: doc/SCTO_Platforms.png
   navbar:
     # logo: docs/quarto.png
-    logo: docs/SCTO_Platforms.png
+    logo: doc/SCTO_Platforms.png
     background: white
     left:
       - text: Home
