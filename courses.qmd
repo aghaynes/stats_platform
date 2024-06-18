@@ -32,7 +32,7 @@ Courses are run in the following approximate locations:
 #| warning: false
 
 
-d <- readxl::read_excel("docs/Stats_edu_course_list_07_07_2022_modified_mg.xlsx", sheet = 3)
+d <- readxl::read_excel("doc/Stats_edu_course_list_07_07_2022_modified_mg.xlsx", sheet = 3)
 
 d$`Name of  training course` <- paste0("<a href='", d$`Course link`, "'>", d$`Name of  training course`, "</a>")
 

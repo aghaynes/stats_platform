@@ -27,7 +27,7 @@ Characteristics are generally presented on the left as rows and groupings at the
 
 **Important note: Baseline table are descriptive tables, significance tests and inferential measures (e.g. standard errors and confidence intervals) should be avoided in observational studies as well as in RCTs (see items 14a and 15a and of the STROBE and CONSORT statements, respectively, @Vandenbroucke_strobe\@MOHER201228)**. In RCTs, testing for differences between randomized groups is irrelevant because baseline differences are, by definition, caused by chance.
 
-![Basic baseline structure and analysis-specific considerations affecting columns, rows, and cells. Figure from @HAYESLARSON2019125](docs/bl_fig1.jpg)
+![Basic baseline structure and analysis-specific considerations affecting columns, rows, and cells. Figure from @HAYESLARSON2019125](doc/bl_fig1.jpg)
 
 ```{r gg-oz-gapminder, echo=FALSE, fig.cap="Figure 1: Basic baseline structure and analysis-specific considerations affecting columns, rows, and cells. Figure from (@HAYESLARSON2019125)", message=FALSE, include=FALSE}
 # library(knitr)
@@ -161,7 +161,7 @@ btable_format using "excars", clear drop(effect test)
 ```
 
 ```{r, include = FALSE}
-dat <- readr::read_csv("docs/btab1.csv")
+dat <- readr::read_csv("doc/btab1.csv")
 dat[is.na(dat)] <- "" # replace NAs
 names(dat)[1] <- " "  # set missing var name
 dat %>%
@@ -185,7 +185,7 @@ btable_format using "excars", clear desc(conti median [lq, uq] mpg mean (sd)) dr
 ```
 
 ```{r, echo = FALSE}
-dat <- readr::read_csv("docs/btab2.csv")
+dat <- readr::read_csv("doc/btab2.csv")
 dat[is.na(dat)] <- "" # replace NAs
 names(dat)[1] <- " "  # set missing var name
 dat %>%
