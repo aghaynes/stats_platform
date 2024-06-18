@@ -45,6 +45,9 @@ website:
           - baselinetables.qmd
           - AdjustedSurvivalCurves.qmd
           - safetyreporting.qmd
+          - text: Other tutorials
+            href: tutorials.qmd#others
+
       - text: Courses
         file: courses.qmd
       - software.qmd
