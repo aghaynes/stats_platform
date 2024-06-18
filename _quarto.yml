@@ -28,6 +28,7 @@ website:
         contents:
           - DataSharing.qmd
           - ReportingGuidelines.qmd
+          - IDMC.qmd
       # - section: "For clinicians"
       #   contents:
       #     - DataSharing.qmd

@@ -1,0 +1,17 @@
+---
+title: "SCTO statisticians in IDMC"
+editor: visual
+---
+
+::: callout-warning
+
+This page is under development. Changes should be expected.
+
+:::
+
+<!-- content needs rearranging, description of what each is about etc -->
+
+Statisticians of the SCTO Statistics & Methodology Platform wrote a white paper describing the role of a statistician from a Swiss Clinical Trial Organisation (SCTO) associated body when taking on the role of independent statistician in an Independent Data Monitoring Committee (IDMC) for a study conducted with the participation of a SCTO network partner. In this statement, the Statistics and Methodology Platform proposes a framework for efficient collaboration between SCTO network partners to the assignment of statisticians to this role.
+
+The full paper can be found and download on the 
+[SCTO website](https://www.sctoplatforms.ch/en/publications/guidelines-and-reports/white-paper-scto-statisticians-in-independent-data-monitoring-committees-of-academic-studies-245.html)
