@@ -131,6 +131,7 @@ prepped <- rc_prep(dat, meta)
 <summary>Example</summary>
 
 ```{r}
+#| eval: false
 library(selcorr)
 ## linear regression:
 selcorr(lm(Fertility ~ ., swiss))
@@ -482,8 +483,8 @@ It is not enough to simply run a trial. ICH GCP E5 also requires risk based moni
 It could be that we believe that time of day might be an indicator of data fabrication because it's not possible that participants are randomised at certain times of the day. The `fab_tod` function can help depict that..
 
 ```{r}
+#| eval: false
 library(kpitools)
-
 
 set.seed(12345)
 dat <- data.frame(
