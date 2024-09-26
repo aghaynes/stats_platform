@@ -1,0 +1,7 @@
+---
+title: "Recommendations for compiling database in Excel"
+---
+
+This document is intended for anyone planning on compiling data into an Excel sheet. Although such practice does not comply with the Good Clinical Practice (GCP), some researchers still have recourse to it. Doing so without a statistician approving of certain features of the database can lead to problems later on ; during data cleaning, data processing and statistical analyses. For this reason, the present recommendations present the points one must observe in order mitigate as much as possible the problems that are inherent to Excel usage.
+
+The document can be downloaded [here {{< iconify material-symbols:download >}} ](Excel_database_guideline_v_1_0.pdf){target="blank"}
