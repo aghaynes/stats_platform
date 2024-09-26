@@ -32,13 +32,6 @@ Survival curves are often depicted in an unadjusted state - i.e. the percentage 
 
 Most clinical trials require safety reporting to authorities. This tutorial gives some information on, primarily, annual safety reporting and introduces an R package for automatically filling out the swissethics annual safety report template.
 
-## Recommendations for compiling database in Excel
-{{< downloadthis Excel_database_guideline_v_1_0.pdf dname=File label="Download the pdf" icon=file-earmark-pdf type=success >}}
-
-![](https://img.shields.io/badge/Target-Clinicians-blue.svg) ![](https://img.shields.io/badge/Level-Beginner-green.svg)
-
-This document is intended for anyone planning on compiling data into an Excel sheet. Although such practice does not comply with the Good Clinical Practice (GCP), some researchers still have recourse to it. Doing so without a statistician approving of certain features of the database can lead to problems later on ; during data cleaning, data processing and statistical analyses. For this reason, the present recommendations present the points one must observe in order mitigate as much as possible the problems that are inherent to Excel usage.
-
 ## Others
 
 Many other tutorials are available. We notably recommend reading the ones published on the following websites:
