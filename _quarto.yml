@@ -5,10 +5,10 @@ project:
 website:
   title: "Statistics and Methodology - tools and support"
   page-footer: CC-BY SCTO Statistics and Methodology
-  favicon: docs/SCTO_Platforms.png
+  favicon: doc/SCTO_Platforms.png
   navbar:
     # logo: docs/quarto.png
-    logo: docs/SCTO_Platforms.png
+    logo: doc/SCTO_Platforms.png
     background: white
     left:
       - text: Home
@@ -46,6 +46,8 @@ website:
           - AdjustedSurvivalCurves.qmd
           - safetyreporting.qmd
           - excel_db.qmd
+          - text: Other tutorials
+            href: tutorials.qmd#others
       - text: Courses
         file: courses.qmd
       - software.qmd

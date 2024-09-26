@@ -1,268 +1,463 @@
 [
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About us & contact",
-    "section": "",
-    "text": "About us\nThis site was developed by statisticians of the SCTO Statistics & Methodology Platform.\nThe SCTO Statistics & Methodology Platform is a network of statisticians working in Swiss Clinical Trial Units, universities, and cantonal hospitals. As part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. More information can be found on the Tools & Resources website by the SCTO Platforms.\n\n\nGet in touch with us\nDo you have any questions or suggestions? Feel free to contact us using the form here.\nDirect support for clinical studies and research projects can also be provided by your local CTU:\n\nDKF Basel\nCTU Bern\nCRC Geneva\nCRC Lausanne\nCTU-EOC Lugano\nCTU St.Gallen\nCTC Zürich"
-  },
-  {
-    "objectID": "AdjustedSurvivalCurves.html",
-    "href": "AdjustedSurvivalCurves.html",
-    "title": "Adjusted survival curves",
-    "section": "",
-    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected."
-  },
-  {
-    "objectID": "AdjustedSurvivalCurves.html#knowledge-from-the-crystal-ball",
-    "href": "AdjustedSurvivalCurves.html#knowledge-from-the-crystal-ball",
-    "title": "Adjusted survival curves",
-    "section": "Knowledge from the crystal ball",
-    "text": "Knowledge from the crystal ball\nBecause we simulated the data, we know that medication has no effect on mortality."
-  },
-  {
-    "objectID": "AdjustedSurvivalCurves.html#descriptive-table",
-    "href": "AdjustedSurvivalCurves.html#descriptive-table",
-    "title": "Adjusted survival curves",
-    "section": "Descriptive table",
-    "text": "Descriptive table\nThe table below shows a descriptive summary of the study population, by medication.\ndata %>% \n  tbl_summary(by = medi) \n\n\n\n\n\n  \n  \n    \n      Characteristic\n      0, N = 1721\n      1, N = 3281\n    \n  \n  \n    fup\n8 (3, 17)\n6 (3, 14)\n    death\n65 (38%)\n156 (48%)\n    enzyme\n64 (37%)\n199 (61%)\n    female\n102 (59%)\n210 (64%)\n  \n  \n  \n    \n      1 Median (IQR); n (%)"
-  },
-  {
-    "objectID": "AdjustedSurvivalCurves.html#unadjusted-kaplan-meier-curve-and-cox-modelling",
-    "href": "AdjustedSurvivalCurves.html#unadjusted-kaplan-meier-curve-and-cox-modelling",
-    "title": "Adjusted survival curves",
-    "section": "Unadjusted Kaplan-Meier curve and Cox-modelling",
-    "text": "Unadjusted Kaplan-Meier curve and Cox-modelling\nA naive (unadjusted) survival analysis of the data reveals the following Kaplan-Meier plot. We conclude that the medication has an effect on survival.\n\nmod <- survfit(Surv(fup, death) ~ medi, data = data)\nggsurvplot(mod, data = data, palette = c(\"#CC0000\", \"black\"), censor = FALSE)\n\n\n\n\n\nmod_cox_unadjusted <- coxph(Surv(fup, death) ~ medi, data = data)\nmod_cox_unadjusted\n\nCall:\ncoxph(formula = Surv(fup, death) ~ medi, data = data)\n\n       coef exp(coef) se(coef)     z      p\nmedi 0.3345    1.3973   0.1479 2.262 0.0237\n\nLikelihood ratio test=5.34  on 1 df, p=0.0209\nn= 500, number of events= 221 \n\n\nAn unadjusted Cox proportional hazard model shows that patients with medication have 1.4 higher hazard of death compared to those without medication.\n\nmod_cox_adjusted <- coxph(Surv(fup, death) ~ medi + enzyme + female, data = data)\nmod_cox_adjusted\n\nCall:\ncoxph(formula = Surv(fup, death) ~ medi + enzyme + female, data = data)\n\n           coef exp(coef) se(coef)      z      p\nmedi    0.01920   1.01938  0.14993  0.128  0.898\nenzyme  2.12737   8.39280  0.20308 10.475 <2e-16\nfemale -0.03787   0.96284  0.16500 -0.230  0.818\n\nLikelihood ratio test=179.2  on 3 df, p=< 2.2e-16\nn= 500, number of events= 221 \n\n\nWhat happens if we adjust for enzym and sex? Then the effect of the medication on death vanishes (hazard ratio=1.02)."
-  },
-  {
-    "objectID": "AdjustedSurvivalCurves.html#ipw-modelling",
-    "href": "AdjustedSurvivalCurves.html#ipw-modelling",
-    "title": "Adjusted survival curves",
-    "section": "IPW modelling",
-    "text": "IPW modelling\nAn IPW modelling approach constructs treatment weights (here medication) given known covariates (here sex and enzyme) using a logistic regression model.\n\n# IPW denominator\nmod <- glm(medi ~ female + enzyme, data = data, family = binomial())\n\ndata$ipw <- NA\n# Probabilty of treatment\ndata$ipw <- predict(mod, data = data, type = \"response\")\n# Probabilty of non-treatment\ndata$ipw[data$medi==0] <- 1 - predict(mod, data = data, type = \"response\")[data$medi == 0]\n\nWe construct stabilized weights, since they can provide narrower confidence intervals (Hernán and Robins (2022)).\n\n# Stabilized weights\nmod0 <- glm(medi ~ 1, data = data, family = binomial())\ndata$ipw0 <- predict(mod0, data = data, type = \"response\")\ndata$ipw0[data$medi == 0] <- 1 - predict(mod0, data = data, type = \"response\")[data$medi == 0]\ndata$ipw <- data$ipw0 / data$ipw\n\nAn IPW adjusted Kaplan-Meier curve reveals that medication has no effect on survival:\n\n# Set survey design\nsvy_design <- svydesign(id = ~1, weights = ~ipw, data = data)\n\n# IPW adjusted Kaplan-Meier\nkm_fit <- svykm(Surv(fup, death) ~ medi, design = svy_design)\n\nkm_df <- data.frame(time = km_fit$`1`$time, surv = km_fit$`1`$surv, strata = \"medi=1\")\nkm_df <- bind_rows(km_df, data.frame(time=km_fit$`0`$time, surv=km_fit$`0`$surv, strata = \"medi=0\"))\nggsurvplot_df(km_df, palette = c(\"#CC0000\", \"black\"), censor=FALSE)\n\n\n\n\n\nmod_cox_ipw_adjusted <- svycoxph(Surv(fup, death) ~ medi, design = svy_design)\nsummary(mod_cox_ipw_adjusted)\n\nIndependent Sampling design (with replacement)\nsvydesign(id = ~1, weights = ~ipw, data = data)\n\n\nCall:\nsvycoxph(formula = Surv(fup, death) ~ medi, design = svy_design)\n\n  n= 500, number of events= 221 \n\n         coef exp(coef) se(coef) robust se      z Pr(>|z|)\nmedi -0.04057   0.96024  0.14165   0.14255 -0.285    0.776\n\n     exp(coef) exp(-coef) lower .95 upper .95\nmedi    0.9602      1.041    0.7262      1.27\n\nConcordance= 0.494  (se = 0.019 )\nLikelihood ratio test= NA  on 1 df,   p=NA\nWald test            = 0.08  on 1 df,   p=0.8\nScore (logrank) test = NA  on 1 df,   p=NA\n\n  (Note: the likelihood ratio and score tests assume independence of\n     observations within a cluster, the Wald and robust score tests do not).\n\n\nThis is confirmed by an IPW adjusted Cox regression model (hazard ratio=0.96)."
-  },
-  {
-    "objectID": "baselinetables.html",
-    "href": "baselinetables.html",
-    "title": "Make a baseline table",
-    "section": "",
-    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected."
-  },
-  {
-    "objectID": "baselinetables.html#in-r",
-    "href": "baselinetables.html#in-r",
-    "title": "Make a baseline table",
-    "section": "In R",
-    "text": "In R\n\nData\n\nlibrary(dplyr)\nlibrary(Hmisc)\ndata(mtcars)\nmtcars$am_f <- factor(mtcars$am, 0:1, c(\"Manual\", \"Automatic\")) \nmtcars$vs_f <- factor(mtcars$vs, 0:1, c(\"V\", \"Straight\")) \nd <- mtcars %>%  select(mpg, cyl, am_f,vs_f)\nHmisc::label(d$mpg) <- \"Miles per gallon\"\nHmisc::label(d$cyl) <- \"Cylinders\"\nHmisc::label(d$am_f) <- \"Transmission\"\nHmisc::label(d$vs_f) <- \"Engine\"\n\n\n\nUsing gtsummary\n\n#Make a table stratified by transmission\nlibrary(gtsummary)\nd %>%  tbl_summary(by = am_f)\n\n\n\n\n\n  \n  \n    \n      Characteristic\n      Manual, N = 191\n      Automatic, N = 131\n    \n  \n  \n    Miles per gallon\n17.3 (14.9, 19.2)\n22.8 (21.0, 30.4)\n    Cylinders\n\n\n    4\n3 (16%)\n8 (62%)\n    6\n4 (21%)\n3 (23%)\n    8\n12 (63%)\n2 (15%)\n    Engine\n\n\n    V\n12 (63%)\n6 (46%)\n    Straight\n7 (37%)\n7 (54%)\n  \n  \n  \n    \n      1 Median (IQR); n (%)\n    \n  \n\n\n\n\nThis is the basic usage:\n\nvariable types are automatically detected so that appropriate descriptive statistics are calculated,\nlabel attributes from the data set are automatically printed,\nmissing values are listed as “Unknown” in the table,\nvariable levels are indented and footnotes are added.\n\nDefaults options may be customized.\n\n# declare cylinders as a continuous variable,\n# for this variable calculate the mean and sd value,\n# add an overall column, \n# change the missing text\nd %>%\n        tbl_summary(by = am_f, \n                    type = list(cyl ~ 'continuous'),\n                    statistic = list(cyl ~ \"{mean} ({sd})\"),\n                    missing_text = \"Missing\") %>%\n        add_overall()\n\n\n\n\n\n  \n  \n    \n      Characteristic\n      Overall, N = 321\n      Manual, N = 191\n      Automatic, N = 131\n    \n  \n  \n    Miles per gallon\n19.2 (15.4, 22.8)\n17.3 (14.9, 19.2)\n22.8 (21.0, 30.4)\n    Cylinders\n6.19 (1.79)\n6.95 (1.54)\n5.08 (1.55)\n    Engine\n\n\n\n    V\n18 (56%)\n12 (63%)\n6 (46%)\n    Straight\n14 (44%)\n7 (37%)\n7 (54%)\n  \n  \n  \n    \n      1 Median (IQR); Mean (SD); n (%)\n    \n  \n\n\n\n\n\nAdditional information\nOnce produced gtsummary tables can be converted to your favorite format (e.g. html/pdf/word).\nFor more information see here. For detailed tutorial and additional options see the very complete vignette and website\n\n\n\nUsing atable\n\nlibrary(atable)\ntable1=atable(d,\n       target_cols = c(\"mpg\" , \"cyl\" , \"vs_f\"),\n       group_col = \"am_f\",\n       format_to=\"Word\")\n\n#Or similar using the formula interface\n## Not run: \ntable1=atable(mpg+cyl+ vs_f ~ am_f, d,format_to=\"Word\")\n## End(Not run)\n\ntable1\n\n                   Group    Manual Automatic      p stat   Effect Size (CI)\n1          Observations                                                    \n2                               19        13   <NA> <NA>               <NA>\n3  Miles per gallon                                                        \n4              Mean (SD)  17 (3.8)  24 (6.2) 0.0019 0.64 -1.5 (-2.3; -0.65)\n5        valid (missing)    19 (0)    13 (0)   <NA> <NA>               <NA>\n6             Cylinders                                                    \n7              Mean (SD) 6.9 (1.5) 5.1 (1.6)  0.013 0.48      1.2 (0.41; 2)\n8        valid (missing)    19 (0)    13 (0)   <NA> <NA>               <NA>\n9                Engine                                                    \n10                     V  63% (12)   46% (6)   0.56 0.35       2 (0.38; 11)\n11              Straight   37% (7)   54% (7)   <NA> <NA>               <NA>\n12               missing    0% (0)    0% (0)   <NA> <NA>               <NA>\n\n\nBy default atable is printing p-values, test statistics as well as effect sizes with a 95% confidence interval. As stated above, baseline tables are descriptive tables and should not contain this type of information. Don’t forget to remove the columns.\n\ntable1=table1%>%select(-\"p\",-\"stat\",-\"Effect Size (CI)\")\ntable1\n\n                   Group    Manual Automatic\n1          Observations                     \n2                               19        13\n3  Miles per gallon                         \n4              Mean (SD)  17 (3.8)  24 (6.2)\n5        valid (missing)    19 (0)    13 (0)\n6             Cylinders                     \n7              Mean (SD) 6.9 (1.5) 5.1 (1.6)\n8        valid (missing)    19 (0)    13 (0)\n9                Engine                     \n10                     V  63% (12)   46% (6)\n11              Straight   37% (7)   54% (7)\n12               missing    0% (0)    0% (0)\n\n\nThe table may also be split up by strata. For example, we can decide to present separately the characteristics of car with a “V” or a “Straight” engine.\n\ntable1=atable(mpg+cyl  ~ am_f|vs_f , d,\n              format_to=\"Word\")\ntable1=table1%>%select(-\"p\",-\"stat\",-\"Effect Size (CI)\")\ntable1\n\n                        Group    Manual Automatic\n1                         V                      \n2           Observations                         \n3                                    12         6\n4       Miles per gallon                         \n5                   Mean (SD)  15 (2.8)    20 (4)\n6             valid (missing)    12 (0)     6 (0)\n7                  Cylinders                     \n8                   Mean (SD)     8 (0) 6.3 (1.5)\n9             valid (missing)    12 (0)     6 (0)\n10                 Straight                      \n11          Observations                         \n12                                    7         7\n13      Miles per gallon                         \n14                  Mean (SD)  21 (2.5)  28 (4.8)\n15            valid (missing)     7 (0)     7 (0)\n16                 Cylinders                     \n17                  Mean (SD) 5.1 (1.1)     4 (0)\n18            valid (missing)     7 (0)     7 (0)\n\n\nAs gtsummary, atable may be exported in different formats (e.g. LATEX, HTML, Word) and it is intended that some parts of atable can be altered by the user. For more details see Ströbel (2019) as well as the package vignette. An other informative vignette can be found by typing the following command in R:\n\nvignette(\"modifying\", package = \"atable\")"
-  },
-  {
-    "objectID": "baselinetables.html#in-stata",
-    "href": "baselinetables.html#in-stata",
-    "title": "Make a baseline table",
-    "section": "In Stata",
-    "text": "In Stata\n\nUsing btable\nThe table is constructed in a two-step approach using two functions: btable() produces an unformatted, raw table, which is then formatted by btable_format to produce a final, publication-ready table. By default, the raw table contains all summary measures, and—if there are two groups—effect measures and p-values. Optionally, the table can be restricted to effect measures of choice and a number of alternative calculations for confidence intervals are available."
-  },
-  {
-    "objectID": "baselinetables.html#instalation",
-    "href": "baselinetables.html#instalation",
-    "title": "Make a baseline table",
-    "section": "Instalation",
-    "text": "Instalation\n\n#In order to install btable from github the github-package is required:\nnet install github, from(\"https://haghish.github.io/github/\")\n#You can then install the development version of btable with:\ngithub install CTU-Bern/btable"
-  },
-  {
-    "objectID": "baselinetables.html#example",
-    "href": "baselinetables.html#example",
-    "title": "Make a baseline table",
-    "section": "Example",
-    "text": "Example\n\n# load example dataset\nsysuse auto2\n# generate table\nbtable price mpg rep78 headroom, by(foreign) saving(\"excars\") denom(nonmiss)\n# format table (default formatting, removing the effect measures and P-values)\nbtable_format using \"excars\", clear drop(effect test)\n\n\n\nThe formatting option can be modified. For example we can decide we may want to\n\npresent the median and lower and upper quartiles instead of the mean and standard deviation\nremove the overall column, and the information column\n\n\n#If we want to display median [lq, up] for all the continuous variables\nbtable_format using \"excars\", clear descriptive(conti median [lq, uq]) drop(effect test total info)\n#If we want to display mean (sd) for the mpg variable and median [lq, up] for all the other continuous variables\nbtable_format using \"excars\", clear desc(conti median [lq, uq] mpg mean (sd)) drop(effect test total info)\n\n\n\n\n\n Domestic (N = 52)Foreign (N = 22)mean (sd), median [lq, uq] or n (%)mean (sd), median [lq, uq] or n (%)Price4783 [4184, 6234]5759 [4499, 7140]Mileage (mpg)20 (4.7)25 (6.6)Repair Record 1978Poor2 (4.2%)0 (0.00%)Fair8 (17%)0 (0.00%)Average27 (56%)3 (14%)Good9 (19%)9 (43%)Excellent2 (4.2%)9 (43%)Headroom (in.)3.5 [2.3, 4.0]2.5 [2.5, 3.0]"
-  },
-  {
-    "objectID": "courses.html",
-    "href": "courses.html",
-    "title": "Courses",
-    "section": "",
-    "text": "This page provides a (non-exhaustive) list of statistically oriented courses that are held in Switzerland. A more general overview of clinical research training opportunities of the SCTO’s Clinical Trial Unit (CTU) Network can be found on the Clinical Research Careers website\n\n\nCourses are run in the following approximate locations:"
-  },
-  {
-    "objectID": "DataSharing.html",
-    "href": "DataSharing.html",
-    "title": "Data sharing",
-    "section": "",
-    "text": "Data sharing has become a requirement of many funding bodies and is becoming a scientific standard in many disciplines. In medical research, however, data sharing can conflict with clinicians’ obligation to protect patients’ privacy. Although general recommendations on data sharing already exist for clinical research, they are often not applicable to aspects specific to Switzerland. The guidance document from the SCTO’s CTU Network fills this gap: it provides practical recommendations for all relevant aspects of data sharing in accordance with legislation in Switzerland. Included in the guidelines are details of aspects are to be considered, decision-making criteria, examples, and checklists – all of which aim to support clinical research data sharing in practice.\nThe full guidance can be found onthe Tools & Resources website by the SCTO Platforms."
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Welcome",
-    "section": "",
-    "text": "This site provides access to tools and advice from statisticians of the SCTO Statistics & Methodology Platform.\nThe overarching aim of the statistics and methodological platform is to develop open access resources supporting the conception, completion and dissemination of clinical research. We help projects to:\n\ndevelop statistical softwares & packages,\nwrite guidelines & tutorials,\ninventory essential guidelines and available training options in Switzerland.\n\nAs part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. Additional tools and resources can be found on the Tools & Resources website by the SCTO Platforms.\n\n\n\n\n\n\nImportant\n\n\n\nThis is site is currently only for demonstration purposes. It is more conceptual than anything else.\nContent will be modified without warning or the site may be removed without notice.\nWe make no guarantees on the accuracy of the information presented."
-  },
-  {
-    "objectID": "ReportingGuidelines.html",
-    "href": "ReportingGuidelines.html",
-    "title": "Reporting guidelines",
-    "section": "",
-    "text": "Reporting guidelines help improve readers understanding of a project (design, conduct, analysis, and interpretation) and enable them to better assess the validity of the projects results.\nBecause different project types require different things to be reports, there are many guidelines for reporting different types of projects.\n\nRandomised trials\n\nCONSORT - guidelines for publishing RCTs\n\nChecklist\nStatement\nFlow diagram\nDISCOURAGES USE OF P-VALUES/CONFIDENCE INTERVALS/STANDARD ERRORS IN DESCRIPTIVE TABLES (e.g. Table 1) - POSSIBLY USEFUL TO REFUTE REVIEWER REQUESTS FOR THEM (see also the Datamethods reference collection on “common myths”)\nExtension for adaptive designs\n\n(checklist in the supplementary materials)\n\n\n\n\n\nObservational studies\n\nSTROBE - guidelines for reporting of observational studies\n\nSTROBE website\nSTROBE checklists\nThe STROBE statement itself has been published in many journals (see here)\n\n\n\n\nSystematic reviews and meta analyses\n\nPRISMA - guidelines for transparent reporting of systematic reviews\n\nHomepage\nChecklist\nExtensions to the original statement\nLink registration details page where registrations are actually made on PROSPERO\nNote that systematic reviews/metaanalyses are sometimes/often rejected by journals for not having been registered\n\n\n\n\nPredictive models\n\nTRIPOD - guidelines for reporting of predictive/prognostic models (validation or derivation)\n\nMoons et al 2015\nMoons et al 2012\nTRIPOD checklists\nAlternate site for derivation/validation checklist\n\n\nNot a reporting guideline per se, but a method of assessing risk of bias and applicability of prediction model studies - PROBAST\n\nPROBAST paper\nfurther explanations and elaboration of PROBAST\nuseful along side TRIPOD perhaps?\nuse of PROBAST to assess ML models in ocology. Long story short, most models are high risk > 123 (81%, 95% CI: 73.8 to 86.4) developed models and 19 (51%, 95% CI: 35.1 to 67.3) validated models were at high risk of bias due to their analysis, mostly due to shortcomings in the analysis including insufficient sample size and split-sample internal validation\n\n\n\nOthers\n\nLatent trajectory studies (GRoLTS)\n\nThe GRoLTS-Checklist: Guidelines for Reporting on Latent Trajectory Studies\n\n\n\n\nFind additional guidelines\n\nThe new open-access database LIGHTS - Library of Guidance for Health Scientists - is a very usefull tool to support the search for methods guidance.\nThe EQUATOR Network also has links to many other guidelines (SPIRIT, CARE, AGREE, …)\nThe COMET Initiative has a searchable list of standardised outcome sets for diseases, conditions etc."
-  },
-  {
-    "objectID": "safetyreporting.html",
-    "href": "safetyreporting.html",
-    "title": "Safety reporting in clinical trials",
-    "section": "",
-    "text": "The safety of research participants is of utmost importance and must be considered for various processes and decisions throughout a clinical study. As such, trialists must be vigilant with regards to participant safety. Many regulatory authorities require regular updates with regards to safety. Swissethics, for instance, requires expedited reporting of some safety events, as well as an Annual Safety Report (ASR).\nFor more information about the conduct of clinical trial and safety reporting, we recommend the following pages: Easy GCS, Safety Reporting Forms."
-  },
-  {
-    "objectID": "safetyreporting.html#annual-safety-reports-in-practice",
-    "href": "safetyreporting.html#annual-safety-reports-in-practice",
-    "title": "Safety reporting in clinical trials",
-    "section": "Annual Safety Reports, in practice",
-    "text": "Annual Safety Reports, in practice\n\nDefinition of the reporting phase\nOften, the requirement is to submit any safety events that have occurred in at least the last 12 months of a trial. We believe that this is not sensible. In our opinion, all events that have occurred since the beginning of the trial should be reported.\n\n\n\n\n\n\nNote\n\n\n\nSimilarly, for medical devices, a cumulative list for the full study period needs to be submitted as part of expedited reporting following MDCG 2020-10/1\n\n\nSuppose a trial was approved on the first of January 2020. This requires that ASRs be submitted each January. Now, suppose that the first years report is sent on the 3rd January 2021. On the 10th January 2021, during a follow up visit, we are informed that an event occurred the previous August (or February, or October, or December). The event should therefore have been reported in the recent report, but wasn’t as we were unaware of it. Using the events-occuring-in-the-previous-12-months approach, the event will also not be reported in the next report (covering year 2 in 2022), as it occurred during year 1. Furthermore, events that were unresolved at the time of the year 1 ASR will never be reported as resolved, as the event is only reported once.\n\n\nProducing a safety report\nTemplates for writing an ASR are available on swissethics and the SCTO platforms websites.\nMembers of the SCTO Statistics Platform have prepared an R package, SwissASR, to assist in completing the swissethics ASR template. If you provide a dataframe containing the safety data, and the information necessary for the ASR report as listed below, the function will automatically return a filled out ASR report in MS Word format. This could then be forwarded to the PI for supplemental input (e.g. completion of relevant check boxes and the summary of the safety evaluation section), signing and submission to the relevant authorities.\n\n\n\n\nflowchart LR\n\n  db[(Database\\ne.g. REDCap, \\n secuTrial)] --> R\n  subgraph R\n  direction TB\n  r1(Any necessary \\n modification of data \\n e.g. recoding, renaming) --> r2[ SwissASR::asr ]\n  end\n  R --> Word\n  Word --> Sponsor\n  Sponsor --> reg[Regulatory\\nauthorities]\n\n\n\n\n\n\n\n\n\n\nExample SwissASR code\n\n# install the package\n# install.packages(\"SwissASR\", repos = \"https://ctu-bern.r-universe.dev\")\n# load the package\nlibrary(SwissASR)\n\n# Load the dataset containing the safety event data\n# Here we use the example dataset 'asr_sae'. Your dataset should have the same format.\n# If you have different column names, you can rename them, or use the var_* options \n# to specify the names of the relevant variables \n# For more information about the function, including the var_* options, please check\n# the package helpfiles\ndata(asr_sae)\n\n# Execute the function to produce the report\nasr(\n  asr_sae,                 # dataset containing the safety event data\n  \"Trial_ASR.docx\",        # report filename\n  # trial info\n  trial_title = \"Example Trial Name\",\n  protocol_number = \"20221002130\",\n  basec_number = \"....\",\n  snctp_number = \"202200458\",\n  swissmedic_number = \"....\",\n  ec_name = \"Kantonale Ethikskommision Bern\",\n  product_name = \"Drug name\",\n  international = FALSE,\n  trial_type = \"imp\",      # IMP/MD/Other\n  # Sponsor info\n  sponsor_contact = \"Sponsor name, Sponsor phone number, Sponsor email\",\n  inst_name_address = \"Institute name, Institute address\",\n  # site info\n  n_centers_t = 20,        # total number\n  n_centers_p = 20,        # planned\n  n_centers_c = 0,         # closed - derive from data\n  n_centers_o = 18,        # open - derive from data\n  # participant info\n  n_pat_t = 1000,          # target\n  n_pat_e = 300,           # enrolled - derive from data\n  n_pat_c = 0,             # complete - derive from data\n  n_pat_p = 0,             # prematurely terminated - derive from data\n  # report info\n  report_date = format(Sys.Date(), format = \"%d/%m/%Y\"), # todays date\n  period_from = as.Date(\"2020-11-01\"), # ideally trial start date\n  period_to = Sys.Date()\n)\n\nElements marked with derive from data can be set such that the code extracts those points from the database and fills them in automatically."
-  },
-  {
-    "objectID": "SampleSizeCalculation.html",
-    "href": "SampleSizeCalculation.html",
-    "title": "Sample size calculation",
-    "section": "",
-    "text": "Background\nIn clinical research, one of the first technical hurdles to a project is the sample size calculation - how many participants would you need to include to be able to answer your research question? They are required by funding bodies, ethics and safety regulators. They can also be important to the sponsor - without a good sample size calculation, how can you tell if you will be able to achieve your aims?\n\nSpeaking with a statistician about sample size calculation can be frustrating for both parties. The investigator just wants a number that they can write in their proposal/protocol/grant application. The statistician cannot give a number without various details. Hence, a good understanding from both sides is primordial. The aim of the study has to be well defined and all the needed assumptions educated guessed.\nThere are two important concepts to understand before we move forward: Type 1 error and Type 2 error.\n\nType 1 error\nA type 1 error is the rejection of the null hypothesis when it is actually true (i.e. a false positive - e.g. a pregnant man). This is controlled by the selection of \\(\\alpha\\), the test significance level, which is normally set at 0.05 (which represents incorrectly rejecting the null hypothesis 5% of the time). For more exploratory analyses, it might be relaxed it to 0.1.\n\n\nType 2 error\nType 2 errors are failing to reject the null hypotheses when they is actually false (i.e. a false negative - e.g. telling a pregnant woman that is not pregnant). This is controlled by the power, which is generally set at 0.8. Power is the probability of correctly rejecting the null hypothesis when the alternative hypothesis is true.\n\n\nTwo main paradigms:\n\nNull hypothesis significance testing (NHST)\nThe aim is to assess if there is a statistical difference between e.g. two groups. For example\n\ndoes medication X lower Y more than medication Z\ndoes surgery X results in fewer Y than surgery Z\n\n\n\nPrecision based approaches\nThe focus is rather on estimating a quantity to a given accuracy. For example, we might expect that 40% of people have a given event within a certain time frame, but we want to estimate that 40% with a specific precision, in other words within a certain interval, e.g. 5% (2.5% on either side). We are interested in the width of the confidence interval (CI). It is also possible to estimate width of the CI for differences (e.g. mean differences) and relative effects (e.g. odds ratios, relative risks).\n\n\n\nWhat the statistician needs to know\n\nWhat is the main comparison?\nBetween two groups is the most common (e.g. intervention vs control).\n\n\nWhat is the primary endpoint?\n\nwhat type of variable is it? Continuous? Binary? Time-to-event?\nwhen is it measured? Thirty days? Six months? One year?\n\n\n\nWhat effect do you expect to see?\n\nif you have continuous data, will the difference in means be 10, 20, …, 100?\nif you have binary data, what proportion of events do you expect in the groups?\n\n\n\nHow variable will the endpoint be?\nFor continuous outcomes, standard deviations are typically called for. This is less relevant if you have a binary endpoint.\n\n\n\n\n\nQuiz\nHere is a short quiz to check your understanding…\n\n\nQuestion 1: In a court room, the defendant is incorrectly sentenced to prison. This is an example of…\n\nA. A type 1 error\nB. A type 2 error\n\n\n\nAnswer\n\nA is the correct answer. The defendant is innocent, so sentencing them to prison is wrong, a false positive.\n\n\n\nQuestion 2: Type 2 errors are controlled by\n\nA. Test significance\nB. Larger sample size\nC. Power\nD. Smaller variation between participants\n\n\n\nAnswer\n\nB or C - a larger sample increases power which reduces the risk of a type 2 error\n\n\n\nQuestion 3: You suspect that there is a difference between treatments and want to quantify that difference to within a certain margin. What paradigm are you in?\n\nA. Null-hypothesis testing\nB. Bayesian\nC. Precision\nD. Frequentist\n\n\n\nAnswer\n\nC - you’re not testing a difference, just trying the estimate the quantity to within a given limit\n\n\n\nQuestion 4: Continuing from the Question 3. Suppose instead that you want to test if one treatment has a higher mean value of an outcome than the other treatment. What information would the statistician need to perform a sample size calculation? Check all that might apply.\n\nA. The cost of determining the outcome\nB. The mean value of the outcome in the relevant population\nC. An estimate of the variability within the population\nD. An estimate of the difference you expect to see between treatments\nE. The number of individuals with the condition that pass through your institution per year\n\n\n\nAnswer\n\nB, C, and D are all important. E can also be useful for approximating trial duration.\n\n\n\n\nExample(s)\nHere we present a couple of very short examples of how sample size calculations can be performed, although we do recommend discussing your project with a statistician.\n\nThe NHST framework\nSuppose we want to estimate the mean difference between two groups (intervention vs placebo) and would like to be able to test it against “no difference”. We have to define which difference will be clinically relevant to test. Let assume that a difference of 20 between both groups is clinically relevant. We also need to guess in an educated way the standard deviation (SD) of the outcome in the groups. Let assume a SD of 12 in each group. We also have to set the power we want to achieve and the probability of type I error (alpha) we will allowed. In this example a power of 90% with a two-sided alpha of 5% can be reached with a sample size of 18, i.e. 9 participants in each group, to test if this difference is equal to null.\nParameters to assume or set:\n\nmean difference (delta)\nstandard deviations\npower\nprobability of type I error (alpha)\n\n\npower.t.test(delta = 20, sd = 12, sig.level = 0.05, power = .9,\n             type = \"two.sample\",\n             alternative = \"two.sided\")\n\n\n     Two-sample t test power calculation \n\n              n = 8.649245\n          delta = 20\n             sd = 12\n      sig.level = 0.05\n          power = 0.9\n    alternative = two.sided\n\nNOTE: n is number in *each* group\n\n\nIf the difference between both groups is smaller the requested sample size to reach the same power with all the other parameters as above will be larger. Similarly, increasing the larger variation around the mean (larger standard deviation) also increases the sample size.\n\npower.t.test(delta = 10, sd = 12, sig.level = 0.05, power = .9,\n             type = \"two.sample\",\n             alternative = \"two.sided\")\n\n\n     Two-sample t test power calculation \n\n              n = 31.25372\n          delta = 10\n             sd = 12\n      sig.level = 0.05\n          power = 0.9\n    alternative = two.sided\n\nNOTE: n is number in *each* group\n\n\nMultiple plausible scenario can be investigated, by varying some parameters. The sse package (Fabbro (2021)), provides a mechanism to create multiple scenarios and examine power in each, together with functions to aid reporting. sse is very flexible, but does require some programming.\n\nlibrary(sse)\n\n## defining the range of n and theta to be evaluated\npsi <- powPar(\n  # SD values\n  theta = seq(from = 5, to = 20, by = 1),\n  # sample sizes\n  n = seq(from = 5, to = 50, by = 2),\n  # group means\n  muA = 0,\n  muB = 20)\n\n## define a function to return the power in each scenario\npowFun <- function(psi){\n  power.t.test(n = n(psi)/2,\n               delta = pp(psi, \"muA\") - pp(psi, \"muB\"),\n               sd = theta(psi)\n  )$power\n}\n\n## evaluate the power-function for all combinations of n and theta\ncalc <- powCalc(psi, powFun)\n\n## choose one particular example at theta of 1 and power of 0.9\npow <- powEx(calc, theta = 12, power = 0.9)\n\n## drawing the power plot with 3 contour lines\nplot(pow,\n     xlab = \"Standard Deviation\",\n     ylab = \"Total Sample Size\",\n     at = c(0.85, 0.9, 0.95))\n\n\n\n\nFor additional details, see the sse package documentation on CRAN.\n\n\nThe precision based framework\nSuppose we want to estimate the proportion of deaths within 30 days of a myocardial infarction (MI). Law, Watt, and Wald (2002) estimated that 36% (31% - 40%) of patients died within 30 days of an MI. If we want to replicate their study, we can estimate the number of participants that would be necessary to achieve a CI which is 9% wide. Members of the SCTO Statistics and Methodology platform created an R package specifically for this problem called presize (Haynes et al. (2021)). It is available on CRAN or as an easy to use shiny application.\nThe relevant function in presize is the prec_prop function. Plugging in the numbers from above, we can see that we require 434 participants (column n) to yield a confidence interval from 31.6% (lwr) to 40.6% (upr).\n\nlibrary(presize)\nprec_prop(p = 0.36, conf.width = 0.09)\n\n\n     sample size for a proportion with Wilson confidence interval. \n\n     p      padj        n conf.width conf.level       lwr       upr\n1 0.36 0.3612296 433.5577       0.09       0.95 0.3162296 0.4062296\n\nNOTE: padj is the adjusted proportion, from which the ci is calculated.\n\n\nIf we know that we can only afford to follow 300 participants, we can see what the confidence interval would be in that case too, via the n argument (instead of cond.width):\n\nprec_prop(p = 0.36, n = 300)\n\n\n     precision for a proportion with Wilson confidence interval. \n\n     p    padj   n conf.width conf.level       lwr       upr\n1 0.36 0.36177 300  0.1080014       0.95 0.3077693 0.4157707\n\nNOTE: padj is the adjusted proportion, from which the ci is calculated.\n\n\nIt’s also possible to check multiple scenarios, by passing multiple values to a parameter. Below we vary the number of participants (what CI width is possible to determine with that number of participants?):\n\nprec_prop(p = .36, n = c(300, 350, 400, 450, 450))\n\n\n     precision for a proportion with Wilson confidence interval. \n\n     p      padj   n conf.width conf.level       lwr       upr\n1 0.36 0.3617700 300 0.10800136       0.95 0.3077693 0.4157707\n2 0.36 0.3615199 350 0.10007265       0.95 0.3114836 0.4115562\n3 0.36 0.3613317 400 0.09366763       0.95 0.3144979 0.4081655\n4 0.36 0.3611850 450 0.08835346       0.95 0.3170083 0.4053617\n5 0.36 0.3611850 450 0.08835346       0.95 0.3170083 0.4053617\n\nNOTE: padj is the adjusted proportion, from which the ci is calculated.\n\n\nThe results can also be plotted easily, which is particularly useful when running multiple scenarios.\n\nlibrary(ggplot2)  # for plotting\nlibrary(magrittr) # for 'piping'\n\nprec_prop(p = .36, n = c(300, 350, 400, 450, 500)) %>% \n  as.data.frame() %>% \n  ggplot(aes(x = n, y = conf.width)) +\n  geom_line() +\n  labs(x = \"N participants\", \n       y = \"CI width\")\n\n\n\n\nFor additional details and examples, see the presize website.\n\n\n\n\n\n\n\nConclusion\nSample size calculation is a very important part of the study planning process. To make the most of your meeting with the statistician, have the answers to the questions mentioned above.\n\n\n\n\n\n\n\n\n\n\n\n\n\nReferences\n\nFabbro, Thomas. 2021. Sse: Sample Size Estimation. https://CRAN.R-project.org/package=sse.\n\n\nHaynes, Alan G., Armando Lenz, Odile Stalder, and Andreas Limacher. 2021. “‘Presize‘: An r-Package for Precision-Based Sample Size Calculation in Clinical Research.” Journal of Open Source Software 6 (60): 3118. https://doi.org/10.21105/joss.03118.\n\n\nLaw, Malcolm R., Hilary C. Watt, and Nicholas J. Wald. 2002. “The Underlying Risk of Death After Myocardial Infarction in the Absence of Treatment.” Archives of Internal Medicine 162 (21): 2405–10. https://doi.org/10.1001/archinte.162.21.2405."
-  },
-  {
-    "objectID": "software.html",
-    "href": "software.html",
-    "title": "Software packages",
-    "section": "",
-    "text": "Working with statistical software is the daily business of our statisticians. Most software languages allow their users to create their own packages of custom functions to reduce errors in repeated tasks. The software used by SCTO statisticians, primarily R and Stata, are no different in this respect. This page provides an overview of some."
-  },
-  {
-    "objectID": "software.html#presize---precision-based-sample-size-estimation",
-    "href": "software.html#presize---precision-based-sample-size-estimation",
-    "title": "Software packages",
-    "section": "presize - precision based sample size estimation",
-    "text": "presize - precision based sample size estimation\n    \npresize is an R package for precision based sample size calculation. It provides a large number of methods for estimating the number of samples required to gain a confidence interval of a given width, or the width that might be expected with a given sample size.\n\n\nExample\n\nAssuming that we want to estimate the confidence interval (CI) around the sensitivity of a test, but we’re not sure of the sensitivity, we can estimate the CI width in a range of scenarios as follows.\n\n\nCode\nlibrary(presize)\n# set up a range of scenarios\nscenarios <- expand.grid(sens = seq(.5, .95, .1),\n                         prev = seq(.1, .2, .04),\n                         ntot = c(250, 350))\n# calculate the CI width at ntot individuals with prev prevalence of event\nscenario_data <- prec_sens(sens = scenarios$sens, \n                           prev = scenarios$prev, \n                           ntot = scenarios$ntot, \n                           method = \"wilson\")\n# plot the scenarios with ggplot2\nscenario_df <- as.data.frame(scenario_data)\nlibrary(ggplot2)\nggplot(scenario_df, \n       aes(x = sens, \n           y = conf.width, \n           # convert colour to factor for distinct colours rather than a continuum\n           col = as.factor(prev), \n           group = prev)) +\n  geom_line() +\n  labs(x = \"Sensitivity\", y = \"CI width\", col = \"Prevalence\") + \n  facet_wrap(vars(ntot))\n\n\n\n\n\n\nFor ease of use, presize also includes a shiny app for point-and-click use, which is also available on the internet.\n\n\nInstallation\n\npresize can be installed in R via the following methods:\n# from CRAN (the stable version)\ninstall.packages(\"presize\")\n\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"presize\", repos = \"https://ctu-bern.r-universe.dev/\")"
-  },
-  {
-    "objectID": "software.html#redcaptools---a-package-for-working-with-redcap-data-in-r",
-    "href": "software.html#redcaptools---a-package-for-working-with-redcap-data-in-r",
-    "title": "Software packages",
-    "section": "redcaptools - a package for working with REDCap data in R",
-    "text": "redcaptools - a package for working with REDCap data in R\n  \nREDCap is a popular database for clinical research, used by many of the CTUs in Switzerland. One aggravation with REDCap data exports is that the data is in one file which can contain a lot of empty cells when more complicated database designs are used. redcaptools has tools to automatically pull the database apart into forms for easier use. Similar to secuTrialR, it also labels variables, and prepares date and factor variables. The function is primarily for interacting with REDCap via the Application Programming Interface (API), allowing easy scripted exports.\n\n\nExample\n\nBy supplying the API token generated by REDCap, together with the APIs URL, the redcap_export_byform function can be used to export all data from the database by form. Each form is returned as an element of a list.\n\nlibrary(redcaptools)\ntoken <- \"some-long-string-provided-by-redcap\"\nurl <- \"https://link.to.redcap/api/\"\ndat <- redcap_export_byform(token, url)\n\nThe ‘normal’ format can be exported via the redcap_export_tbl function:\n\nrecord_data <- redcap_export_tbl(token, url, \"record\")\nmeta <- redcap_export_tbl(token, url, \"metadata\")\n\nThis function can also be used to export various other API endpoints (e.g. various types of metadata etc, specific forms).\nThe data can then be formatted by using the metadata and the rc_prep function\n\nprepped <- rc_prep(dat, meta)\n\n\n\n\nInstallation\n\nredcaptools can be installed in R via the following methods:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"redcaptools\", repos = \"https://ctu-bern.r-universe.dev/\")\n\n# from github\nremotes::install_github(\"CTU-Bern/redcaptools\")"
-  },
-  {
-    "objectID": "software.html#selcorr---post-selection-inference-for-generalized-linear-models",
-    "href": "software.html#selcorr---post-selection-inference-for-generalized-linear-models",
-    "title": "Software packages",
-    "section": "selcorr - post-selection inference for generalized linear models",
-    "text": "selcorr - post-selection inference for generalized linear models\n \nselcorr calculates (unconditional) post-selection confidence intervals and p-values for the coefficients of (generalized) linear models.\n\n\nExample\n\n\nlibrary(selcorr)\n\nWarning: Paket 'selcorr' wurde unter R Version 4.2.2 erstellt\n\n## linear regression:\nselcorr(lm(Fertility ~ ., swiss))\n\n                   Estimate    CI lower    CI upper            p\n(Intercept)      62.1013116 42.71786664 81.48475647 8.491981e-08\nAgriculture      -0.1546175 -0.29223032 -0.01700466 1.982091e-02\nEducation        -0.9802638 -1.39242064 -0.56810702 1.824604e-05\nCatholic          0.1246664  0.04632685  0.20300594 1.658185e-03\nInfant.Mortality  1.0784422  0.30780496  1.84907938 4.254657e-03\n\n## logistic regression:\nswiss.lr = within(swiss, Fertility <- (Fertility > 70))\nselcorr(glm(Fertility ~ ., binomial, swiss.lr))\n\n                    Estimate     CI lower    CI upper           p\n(Intercept)       4.82826099 -5.321339606 16.07753713 0.350491066\nAgriculture      -0.09614515 -0.226571990 -0.01216919 0.021955311\nExamination      -0.32116204 -0.648563464 -0.08452792 0.005626104\nEducation        -0.12077779 -0.351284829  0.04391257 0.157299207\nCatholic          0.02077614 -0.007916228  0.05372390 0.157299207\nInfant.Mortality  0.29077911 -0.081067391  0.77887415 0.132575704\n\n\nA parallel bootstrapping approach is also available.\n\n\nCode\nlibrary(future.apply)\nplan(multisession)\nboot.repl = future_replicate(8, selcorr(lm(Fertility ~ ., swiss), boot.repl = 1000,\nquiet = TRUE)$boot.repl, simplify = FALSE)\nplan(sequential)\nselcorr(lm(Fertility ~ ., swiss), boot.repl = do.call(\"rbind\", boot.repl))\n\n\n\n\n\nInstallation\n\nselcorr can be installed in R from CRAN:\n# from CRAN (the stable version)\ninstall.packages(\"selcorr\")"
-  },
-  {
-    "objectID": "software.html#sse---sample-size-estimation",
-    "href": "software.html#sse---sample-size-estimation",
-    "title": "Software packages",
-    "section": "sse - sample size estimation",
-    "text": "sse - sample size estimation\n   \nsse is another R package for sample size calculation that has been in use at CTU Basel for many years. It’s approach is very general, allowing a wide range of scenarios to be assessed rapidly. Where presize is rather for precision-based calculations, sse is rather for hypothesis testing, although it is general enough that it can be used for both frameworks.\n\n\nExample\n\nWe want to find the sample size for comparing two means. We are unsure of the standard deviation to expect, so we assess the sample size across a range of standard deviations. Assuming that a standard deviation of 12 is appropriate in this case, and we want a power of 90%, we can plot the power curve:\n\n\nCode\nlibrary(sse)\n## defining the range of n and theta to be evaluated\npsi <- powPar(\n  # SD values\n  theta = seq(from = 5, to = 20, by = 1),\n  # sample sizes\n  n = seq(from = 5, to = 50, by = 2),\n  # group means\n  muA = 0,\n  muB = 20)\n## define a function to return the power in each scenario\npowFun <- function(psi){\n  power.t.test(n = n(psi)/2,\n               delta = pp(psi, \"muA\") - pp(psi, \"muB\"),\n               sd = theta(psi)\n  )$power\n}\n## evaluate the power-function for all combinations of n and theta\ncalc <- powCalc(psi, powFun)\n\n## choose one particular example at theta of 1 and power of 0.9\npow <- powEx(calc, theta = 12, power = 0.9)\n## drawing the power plot with 3 contour lines\nplot(pow,\n     xlab = \"Standard Deviation\",\n     ylab = \"Total Sample Size\",\n     at = c(0.85, 0.9, 0.95))\n\n\n\n\n\n\n\n\nInstallation\n\nsse can be installed in R via the following methods:\n# from CRAN (the stable version)\ninstall.packages(\"sse\")\n\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"sse\", repos = \"https://ctu-bern.r-universe.dev/\")"
-  },
-  {
-    "objectID": "software.html#sts_graph_landmark---landmark-analysis-graphs",
-    "href": "software.html#sts_graph_landmark---landmark-analysis-graphs",
-    "title": "Software packages",
-    "section": "sts_graph_landmark - landmark analysis graphs",
-    "text": "sts_graph_landmark - landmark analysis graphs\n \nsts_graph_landmark is a Stata program to create landmark analysis Kaplan-Meier curves, complete with risk table.\n\n\nExample\n\nUsing sts_graph_landmark is consistent with the other sts_* programs in Stata. The dataset should be stset and then sts_graph_landmark can be called specifying the landmark time in at.\n\n\nCode\n# load example dataset (note: this example is nonsensical and only for graphing purposes)\nwebuse stan3, clear\n# set data as survival data\nstset t1, failure(died) id(id)\n# label treatment arms \nlabel define posttran_l 0 \"prior transplantation\" 1 \"after transplantation\"\nlabel value posttran posttran_l\n# create landmark plot and table \nsts_graph_landmark, at(200) by(posttran) risktable\n\n\n\n\n\n\nInstallation\n\nIt can be installed from github:\nnet install github, from(\"https://haghish.github.io/github/\")\ngithub install CTU-Bern/sts_graph_landmark"
-  },
-  {
-    "objectID": "software.html#secutrialr---import-secutrial-datasets-to-r",
-    "href": "software.html#secutrialr---import-secutrial-datasets-to-r",
-    "title": "Software packages",
-    "section": "secuTrialR - import secuTrial datasets to R",
-    "text": "secuTrialR - import secuTrial datasets to R\n    \n\nsecuTrial datasets consist of a lot of files and it can be difficult to get to grips with them. secuTrialR tries to reduce the burden by providing a method to import and format (e.g. adding labels to variables) and explore data.\n\n\nExample\n\nData can be read into R using read_secuTrial. The visit_structure function gives an idea of which forms are required at which visit. plot_recruitment is for plotting trial recruitment.\n\n\nCode\nlibrary(secuTrialR)\n# prepare path to example export\nexport_location <- system.file(\"extdata\", \"sT_exports\", \"snames\",\n                               \"s_export_CSV-xls_CTU05_short_miss_en_utf8.zip\",\n                               package = \"secuTrialR\")\n# read all export data\nsT_export <- read_secuTrial(data_dir = export_location)\nplot(visit_structure(sT_export))\nplot_recruitment(sT_export)\n\n\n\n\n\n\n\n\n\n\n\n\n\nsecuTrialR was developed by the data management platform with substantial input from members of the statistics and methodology platform.\n\n\nInstallation\n\nsecuTrialR can be installed in R via the following methods:\n# from CRAN (the stable version)\ninstall.packages(\"secuTrialR\")\n\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"secuTrialR\", repos = \"https://ctu-bern.r-universe.dev/\")"
-  },
-  {
-    "objectID": "software.html#accrualplot---simple-creation-of-accrual-plots",
-    "href": "software.html#accrualplot---simple-creation-of-accrual-plots",
-    "title": "Software packages",
-    "section": "accrualPlot - simple creation of accrual plots",
-    "text": "accrualPlot - simple creation of accrual plots\n   \naccrualPlot is an R package for summarizing trial recruitment data. With relatively little code, it is possible to create various plots and tables useful for recruitment reports, as well as predict the end of recruitment based on the recruitment to date.\n\n\nExample\n\naccrualPlot includes a simulated dataset of participants recruited into a trial in one of three sites. The accrual_create_df function is used to define the properties of the sites (e.g. start dates if that differs from the first participants recruitment date). The plot and summary functions can then be used to plot or tabulate the data. The data can be plot using either base graphics or ggplot2.\n\n\nCode\nlibrary(accrualPlot)\ndata(accrualdemo)\ndf <- accrual_create_df(accrualdemo$date, by = accrualdemo$site)\n# cumulative recruitment\nplot(df, which = \"cum\", engine = \"ggplot2\")\n# absolute recruitment (daily/weekly/monthly)\nplot(df, which = \"abs\", engine = \"ggplot2\")\n# predict end date\nplot(df, which = \"pred\", target = 300, engine = \"ggplot2\")\n# summary table\nlibrary(gt)\ngt(summary(df)) %>% \n  tab_options(column_labels.hidden = TRUE)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n  \n  \n  \n    Center\nFirst participant in\nMonths accruing\nParticipants accrued\nAccrual rate (per month)\n    Site 1\n09Jul2020\n3\n141\n45.98\n    Site 2\n20Jul2020\n3\n88\n32.59\n    Site 3\n04Sep2020\n1\n21\n18.00\n    Overall\n09Jul2020\n3\n250\n81.52\n  \n  \n  \n\n\n\n\n\n\n\n\n\nInstallation\n\naccrualPlot can be installed in R via the following methods:\n# from CRAN (the stable version)\ninstall.packages(\"accrualPlot\")\n\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"accrualPlot\", repos = \"https://ctu-bern.r-universe.dev/\")"
-  },
-  {
-    "objectID": "software.html#btable---create-baseline-tables-in-stata",
-    "href": "software.html#btable---create-baseline-tables-in-stata",
-    "title": "Software packages",
-    "section": "btable - create baseline tables in Stata",
-    "text": "btable - create baseline tables in Stata\n \nCreating baseline tables is a repetitive task. Each paper needs one. btable provides a powerful approach to creating them. See the making baseline tables article for an example. More information on btable can be found here.\n\n\nInstallation\n\nbtable can be installed in Stata via the following method:\nnet install github, from(\"https://haghish.github.io/github/\")\ngithub install CTU-Bern/btable"
-  },
-  {
-    "objectID": "software.html#btabler---format-tables-for-latex-reports",
-    "href": "software.html#btabler---format-tables-for-latex-reports",
-    "title": "Software packages",
-    "section": "btabler - format tables for LaTeX reports",
-    "text": "btabler - format tables for LaTeX reports\n  \nbtabler adds additional functionality to the xtable package such as merging column headers for use in tables for LaTeX. It was originally developed as an easy way to put tables generated by `btable` into LaTeX reports, hence the similarity in names.\n\n\nExample\n\n\nlibrary(btabler)\ndf <- data.frame(name = c(\"\", \"\", \"Row 1\", \"Row2\"),\n                 out_t = c(\"Total\", \"mean (sd)\", \"t1\", \"t1\"),\n                 out_1 = c(\"Group 1\", \"mean (sd)\", \"g11\", \"g12\"),\n                 out_2 = c(\"Group 2\", \"mean (sd)\", \"g21\", \"g22\"))\nbtable(df, nhead = 2, nfoot = 0, caption = \"Table1\")\n\nWhich will look like this in after LaTeX has created your PDF:\n\n\n\n\nInstallation\n\nbtabler can be installed in R via the following method:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"btabler\", repos = \"https://ctu-bern.r-universe.dev/\")"
-  },
-  {
-    "objectID": "software.html#hsar---create-reproducible-hospital-service-areas-in-r",
-    "href": "software.html#hsar---create-reproducible-hospital-service-areas-in-r",
-    "title": "Software packages",
-    "section": "HSAr - create reproducible hospital service areas in R",
-    "text": "HSAr - create reproducible hospital service areas in R\n   \nHospital service areas can be useful for hospital planning, but their main use is in small area research. They are traditionally made largely by hand, by assigning each location to the hospital where most residents go and then iteratively moving locations until two main criteria are fulfilled - a HSA should not have detached islands, and at least 50% of it’s hospitalizations should stay there. The iterative steps are largely manual subjective work. As such the reproducibility of HSA creation is poor.\nHSAr provides an automated algorithm for creating HSAs by starting at the hospital and building the HSA around it until all regions in the provided shapefile are assigned to a HSA.\nHSAr was developed as part of national research programme 74, smarter health care.\n\n\nExample\n\n\n\n\nInstallation\n\nHSAr can be installed in R via the following method:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"HSAr\", repos = \"https://ctu-bern.r-universe.dev/\")"
-  },
-  {
-    "objectID": "software.html#kpitools---tools-to-assist-with-risk-based-management-kpis",
-    "href": "software.html#kpitools---tools-to-assist-with-risk-based-management-kpis",
-    "title": "Software packages",
-    "section": "kpitools - tools to assist with risk based management KPIs",
-    "text": "kpitools - tools to assist with risk based management KPIs\n  \nIt is not enough to simply run a trial. ICH GCP E5 also requires risk based monitoring to be performed. kpitools provides a set of summary functions and a standardized format for presenting the key performance indicators (KPIs) that are typically defined for risk based monitoring strategies.\n\n\nExample\n\nIt could be that we believe that time of day might be an indicator of data fabrication because it’s not possible that participants are randomised at certain times of the day. The fab_tod function can help depict that..\n\nlibrary(kpitools)\n\nLade nötiges Paket: dplyr\n\n\n\nAttache Paket: 'dplyr'\n\n\nDas folgende Objekt ist maskiert 'package:sse':\n\n    n\n\n\nDie folgenden Objekte sind maskiert von 'package:stats':\n\n    filter, lag\n\n\nDie folgenden Objekte sind maskiert von 'package:base':\n\n    intersect, setdiff, setequal, union\n\n\nLade nötiges Paket: magrittr\n\n\nLade nötiges Paket: purrr\n\n\n\nAttache Paket: 'purrr'\n\n\nDas folgende Objekt ist maskiert 'package:magrittr':\n\n    set_names\n\n\nLade nötiges Paket: rlang\n\n\n\nAttache Paket: 'rlang'\n\n\nDie folgenden Objekte sind maskiert von 'package:purrr':\n\n    %@%, as_function, flatten, flatten_chr, flatten_dbl, flatten_int,\n    flatten_lgl, flatten_raw, invoke, splice\n\n\nDas folgende Objekt ist maskiert 'package:magrittr':\n\n    set_names\n\nset.seed(12345)\ndat <- data.frame(\n  x = lubridate::ymd_h(\"2020-05-01 13\") + 60^2*rnorm(40, 0, 3),\n  mean = rnorm(40, 56, 20),\n  by = sample(1:4, 40, prob = c(.2,.25,.4,.4), replace = TRUE)\n)\ndat %>% kpi(\"mean\", kpi_fn_mean, by = \"by\") %>% plot\n\n$by\n\n\n\n\ndat %>% fab_tod(\"x\")\n\n\n\n\n\n\n\nInstallation\n\nkpitools can be installed in R via the following method:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"kpitools\", repos = \"https://ctu-bern.r-universe.dev/\")"
-  },
-  {
-    "objectID": "software.html#stata_secutrial---some-stata-code-to-do-data-import-and-preparation-of-secutrial-datasets",
-    "href": "software.html#stata_secutrial---some-stata-code-to-do-data-import-and-preparation-of-secutrial-datasets",
-    "title": "Software packages",
-    "section": "stata_secutrial - some Stata code to do data import and preparation of secuTrial datasets",
-    "text": "stata_secutrial - some Stata code to do data import and preparation of secuTrial datasets\n \nSimilar to secuTrialR above, stata_secutrial provides Stata code to read and prepare secuTrial exports in Stata. It labels variables, formats date variables, adds labels to categorical variables etc, saving each form as a dta file for your further use.\n\n\nExample\n\nAssuming certain folders and globals have been prepared in advance (see GitHub for further information), using stata_secutrial may be as simple as entering\ndo SecuTrial_zip_data_import\ninto Stata and then navigating to your download when prompted.\n\n\n\nInstallation\n\nAs stata_secutrial is just code rather than a package, you can copy the files from GitHub and use then in you project. Towards the top of the GitHub page is a green code button. Click that and choose download ZIP. You can then unzip the files to your working directory."
-  },
-  {
-    "objectID": "software.html#swissasr---simplified-annual-safety-reports-with-r",
-    "href": "software.html#swissasr---simplified-annual-safety-reports-with-r",
-    "title": "Software packages",
-    "section": "SwissASR - simplified annual safety reports with R",
-    "text": "SwissASR - simplified annual safety reports with R\n  \nEthics and regulators often require annual safety reports. SwissASR provides a relatively easy way to produce annual safety reports according to the current template available on the SwissMedic(?) website. The function returns a word file with the safety data completed based on the data provided to it. Minimal additional details should then be added by the study team or principal investigator.\n\n\nExample\n\n\n\n\nInstallation\n\nSwissASR can be installed in R via the following method:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"SwissASR\", repos = \"https://ctu-bern.r-universe.dev/\")"
-  },
-  {
     "objectID": "tutorials.html",
     "href": "tutorials.html",
     "title": "Tutorials",
     "section": "",
-    "text": "We have produced a range of tutorials on a variety of topics. They are targeted at different audiences depending on the content.\nThis page provides a brief summary of the topics covered as well as an indication of the target audience."
+    "text": "We have produced a range of tutorials on a variety of topics. They are targeted at different audiences depending on the content.\nThis page provides a brief summary of the topics covered as well as an indication of the target audience.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Overview"
+    ]
   },
   {
     "objectID": "tutorials.html#baseline-tables",
     "href": "tutorials.html#baseline-tables",
     "title": "Tutorials",
     "section": "Baseline tables",
-    "text": "Baseline tables\n \nBaseline tables are included in every paper, yet they are time consuming to produce. This vignette shows some tools to make them a little easier to create."
+    "text": "Baseline tables\n \nBaseline tables are included in every paper, yet they are time consuming to produce. This vignette shows some tools to make them a little easier to create.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Overview"
+    ]
   },
   {
     "objectID": "tutorials.html#sample-size-calculation",
     "href": "tutorials.html#sample-size-calculation",
     "title": "Tutorials",
     "section": "Sample size calculation",
-    "text": "Sample size calculation\n \nSample size calculations are also required for virtually every project. As statisticians, we regularly receive questions on the topic. This vignette provides an overview of the topic and some recommendations for information you should bring the next time you need to discuss the sample size calculations with a statistician."
+    "text": "Sample size calculation\n \nSample size calculations are also required for virtually every project. As statisticians, we regularly receive questions on the topic. This vignette provides an overview of the topic and some recommendations for information you should bring the next time you need to discuss the sample size calculations with a statistician.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Overview"
+    ]
   },
   {
     "objectID": "tutorials.html#adjusted-survival-curves",
     "href": "tutorials.html#adjusted-survival-curves",
     "title": "Tutorials",
     "section": "Adjusted survival curves",
-    "text": "Adjusted survival curves\n \nSurvival curves are often depicted in an unadjusted state - i.e. the percentage surviving at a given timepoint, potentially split by a group. Where confounding occurs, unadjusted survival curves can be misleading. The inverse probability weighting method seeks to overcome this problem."
+    "text": "Adjusted survival curves\n \nSurvival curves are often depicted in an unadjusted state - i.e. the percentage surviving at a given timepoint, potentially split by a group. Where confounding occurs, unadjusted survival curves can be misleading. The inverse probability weighting method seeks to overcome this problem.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Overview"
+    ]
   },
   {
     "objectID": "tutorials.html#safety-reporting-in-clinical-trials",
     "href": "tutorials.html#safety-reporting-in-clinical-trials",
     "title": "Tutorials",
     "section": "Safety reporting in clinical trials",
-    "text": "Safety reporting in clinical trials\n \nMost clinical trials require safety reporting to authorities. This tutorial gives some information on, primarily, annual safety reporting and introduces an R package for automatically filling out the swissethics annual safety report template."
+    "text": "Safety reporting in clinical trials\n \nMost clinical trials require safety reporting to authorities. This tutorial gives some information on, primarily, annual safety reporting and introduces an R package for automatically filling out the swissethics annual safety report template.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Overview"
+    ]
+  },
+  {
+    "objectID": "tutorials.html#others",
+    "href": "tutorials.html#others",
+    "title": "Tutorials",
+    "section": "Others",
+    "text": "Others\nMany other tutorials are available. We notably recommend reading the ones published on the following websites:\n\nCenter for Reproducible Science of the university of Zürich\nEpidemiology, Biostatistics and Prevention Institute of the university of Zürich see “Resources” section at the end of the page.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Overview"
+    ]
+  },
+  {
+    "objectID": "SampleSizeCalculation.html",
+    "href": "SampleSizeCalculation.html",
+    "title": "Sample size calculation",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\n\nBackground\nIn clinical research, one of the first technical hurdles to a project is the sample size calculation - how many participants would you need to include to be able to answer your research question? They are required by funding bodies, ethics and safety regulators. They can also be important to the sponsor - without a good sample size calculation, how can you tell if you will be able to achieve your aims?\n\nSpeaking with a statistician about sample size calculation can be frustrating for both parties. The investigator just wants a number that they can write in their proposal/protocol/grant application. The statistician cannot give a number without various details. Hence, a good understanding from both sides is primordial. The aim of the study has to be well defined and all the needed assumptions educated guessed.\nThere are two important concepts to understand before we move forward: Type 1 error and Type 2 error.\n\nType 1 error\nA type 1 error is the rejection of the null hypothesis when it is actually true (i.e. a false positive - e.g. a pregnant man). This is controlled by the selection of \\(\\alpha\\), the test significance level, which is normally set at 0.05 (which represents incorrectly rejecting the null hypothesis 5% of the time). For more exploratory analyses, it might be relaxed it to 0.1.\n\n\nType 2 error\nType 2 errors are failing to reject the null hypotheses when they is actually false (i.e. a false negative - e.g. telling a pregnant woman that is not pregnant). This is controlled by the power, which is generally set at 0.8. Power is the probability of correctly rejecting the null hypothesis when the alternative hypothesis is true.\n\n\nTwo main paradigms:\n\nNull hypothesis significance testing (NHST)\nThe aim is to assess if there is a statistical difference between e.g. two groups. For example\n\ndoes medication X lower Y more than medication Z\ndoes surgery X results in fewer Y than surgery Z\n\n\n\nPrecision based approaches\nThe focus is rather on estimating a quantity to a given accuracy. For example, we might expect that 40% of people have a given event within a certain time frame, but we want to estimate that 40% with a specific precision, in other words within a certain interval, e.g. 5% (2.5% on either side). We are interested in the width of the confidence interval (CI). It is also possible to estimate width of the CI for differences (e.g. mean differences) and relative effects (e.g. odds ratios, relative risks).\n\n\n\nWhat the statistician needs to know\n\nWhat is the main comparison?\nBetween two groups is the most common (e.g. intervention vs control).\n\n\nWhat is the primary endpoint?\n\nwhat type of variable is it? Continuous? Binary? Time-to-event?\nwhen is it measured? Thirty days? Six months? One year?\n\n\n\nWhat effect do you expect to see?\n\nif you have continuous data, will the difference in means be 10, 20, …, 100?\nif you have binary data, what proportion of events do you expect in the groups?\n\n\n\nHow variable will the endpoint be?\nFor continuous outcomes, standard deviations are typically called for. This is less relevant if you have a binary endpoint.\n\n\n\n\n\nQuiz\nHere is a short quiz to check your understanding…\n\n\nQuestion 1: In a court room, the defendant is incorrectly sentenced to prison. This is an example of…\n\nA. A type 1 error\nB. A type 2 error\n\n\n\nAnswer\n\nA is the correct answer. The defendant is innocent, so sentencing them to prison is wrong, a false positive.\n\n\n\nQuestion 2: Type 2 errors are controlled by\n\nA. Test significance\nB. Larger sample size\nC. Power\nD. Smaller variation between participants\n\n\n\nAnswer\n\nB or C - a larger sample increases power which reduces the risk of a type 2 error\n\n\n\nQuestion 3: You suspect that there is a difference between treatments and want to quantify that difference to within a certain margin. What paradigm are you in?\n\nA. Null-hypothesis testing\nB. Bayesian\nC. Precision\nD. Frequentist\n\n\n\nAnswer\n\nC - you’re not testing a difference, just trying the estimate the quantity to within a given limit\n\n\n\nQuestion 4: Continuing from the Question 3. Suppose instead that you want to test if one treatment has a higher mean value of an outcome than the other treatment. What information would the statistician need to perform a sample size calculation? Check all that might apply.\n\nA. The cost of determining the outcome\nB. The mean value of the outcome in the relevant population\nC. An estimate of the variability within the population\nD. An estimate of the difference you expect to see between treatments\nE. The number of individuals with the condition that pass through your institution per year\n\n\n\nAnswer\n\nB, C, and D are all important. E can also be useful for approximating trial duration.\n\n\n\n\nExample(s)\nHere we present a couple of very short examples of how sample size calculations can be performed, although we do recommend discussing your project with a statistician.\n\nThe NHST framework\nSuppose we want to estimate the mean difference between two groups (intervention vs placebo) and would like to be able to test it against “no difference”. We have to define which difference will be clinically relevant to test. Let assume that a difference of 20 between both groups is clinically relevant. We also need to guess in an educated way the standard deviation (SD) of the outcome in the groups. Let assume a SD of 12 in each group. We also have to set the power we want to achieve and the probability of type I error (alpha) we will allowed. In this example a power of 90% with a two-sided alpha of 5% can be reached with a sample size of 18, i.e. 9 participants in each group, to test if this difference is equal to null.\nParameters to assume or set:\n\nmean difference (delta)\nstandard deviations\npower\nprobability of type I error (alpha)\n\n\npower.t.test(delta = 20, sd = 12, sig.level = 0.05, power = .9,\n             type = \"two.sample\",\n             alternative = \"two.sided\")\n\n\n     Two-sample t test power calculation \n\n              n = 8.649245\n          delta = 20\n             sd = 12\n      sig.level = 0.05\n          power = 0.9\n    alternative = two.sided\n\nNOTE: n is number in *each* group\n\n\nIf the difference between both groups is smaller the requested sample size to reach the same power with all the other parameters as above will be larger. Similarly, increasing the larger variation around the mean (larger standard deviation) also increases the sample size.\n\npower.t.test(delta = 10, sd = 12, sig.level = 0.05, power = .9,\n             type = \"two.sample\",\n             alternative = \"two.sided\")\n\n\n     Two-sample t test power calculation \n\n              n = 31.25372\n          delta = 10\n             sd = 12\n      sig.level = 0.05\n          power = 0.9\n    alternative = two.sided\n\nNOTE: n is number in *each* group\n\n\nMultiple plausible scenario can be investigated, by varying some parameters. The sse package (Fabbro (2021)), provides a mechanism to create multiple scenarios and examine power in each, together with functions to aid reporting. sse is very flexible, but does require some programming.\n\nlibrary(sse)\n\n## defining the range of n and theta to be evaluated\npsi &lt;- powPar(\n  # SD values\n  theta = seq(from = 5, to = 20, by = 1),\n  # sample sizes\n  n = seq(from = 5, to = 50, by = 2),\n  # group means\n  muA = 0,\n  muB = 20)\n\n## define a function to return the power in each scenario\npowFun &lt;- function(psi){\n  power.t.test(n = n(psi)/2,\n               delta = pp(psi, \"muA\") - pp(psi, \"muB\"),\n               sd = theta(psi)\n  )$power\n}\n\n## evaluate the power-function for all combinations of n and theta\ncalc &lt;- powCalc(psi, powFun)\n\n## choose one particular example at theta of 1 and power of 0.9\npow &lt;- powEx(calc, theta = 12, power = 0.9)\n\n## drawing the power plot with 3 contour lines\nplot(pow,\n     xlab = \"Standard Deviation\",\n     ylab = \"Total Sample Size\",\n     at = c(0.85, 0.9, 0.95))\n\n\n\n\n\n\n\n\nFor additional details, see the sse package documentation on CRAN.\n\n\nThe precision based framework\nSuppose we want to estimate the proportion of deaths within 30 days of a myocardial infarction (MI). Law, Watt, and Wald (2002) estimated that 36% (31% - 40%) of patients died within 30 days of an MI. If we want to replicate their study, we can estimate the number of participants that would be necessary to achieve a CI which is 9% wide. Members of the SCTO Statistics and Methodology platform created an R package specifically for this problem called presize (Haynes et al. (2021)). It is available on CRAN or as an easy to use shiny application.\nThe relevant function in presize is the prec_prop function. Plugging in the numbers from above, we can see that we require 434 participants (column n) to yield a confidence interval from 31.6% (lwr) to 40.6% (upr).\n\nlibrary(presize)\nprec_prop(p = 0.36, conf.width = 0.09)\n\n\n     sample size for a proportion with Wilson confidence interval. \n\n     p      padj        n conf.width conf.level       lwr       upr\n1 0.36 0.3612296 433.5577       0.09       0.95 0.3162296 0.4062296\n\nNOTE: padj is the adjusted proportion, from which the ci is calculated.\n\n\nIf we know that we can only afford to follow 300 participants, we can see what the confidence interval would be in that case too, via the n argument (instead of cond.width):\n\nprec_prop(p = 0.36, n = 300)\n\n\n     precision for a proportion with Wilson confidence interval. \n\n     p    padj   n conf.width conf.level       lwr       upr\n1 0.36 0.36177 300  0.1080014       0.95 0.3077693 0.4157707\n\nNOTE: padj is the adjusted proportion, from which the ci is calculated.\n\n\nIt’s also possible to check multiple scenarios, by passing multiple values to a parameter. Below we vary the number of participants (what CI width is possible to determine with that number of participants?):\n\nprec_prop(p = .36, n = c(300, 350, 400, 450, 450))\n\n\n     precision for a proportion with Wilson confidence interval. \n\n     p      padj   n conf.width conf.level       lwr       upr\n1 0.36 0.3617700 300 0.10800136       0.95 0.3077693 0.4157707\n2 0.36 0.3615199 350 0.10007265       0.95 0.3114836 0.4115562\n3 0.36 0.3613317 400 0.09366763       0.95 0.3144979 0.4081655\n4 0.36 0.3611850 450 0.08835346       0.95 0.3170083 0.4053617\n5 0.36 0.3611850 450 0.08835346       0.95 0.3170083 0.4053617\n\nNOTE: padj is the adjusted proportion, from which the ci is calculated.\n\n\nThe results can also be plotted easily, which is particularly useful when running multiple scenarios.\n\nlibrary(ggplot2)  # for plotting\nlibrary(magrittr) # for 'piping'\n\nprec_prop(p = .36, n = c(300, 350, 400, 450, 500)) %&gt;% \n  as.data.frame() %&gt;% \n  ggplot(aes(x = n, y = conf.width)) +\n  geom_line() +\n  labs(x = \"N participants\", \n       y = \"CI width\")\n\n\n\n\n\n\n\n\nFor additional details and examples, see the presize website.\n\n\n\n\n\n\n\nConclusion\nSample size calculation is a very important part of the study planning process. To make the most of your meeting with the statistician, have the answers to the questions mentioned above.\n\n\n\n\n\n\n\n\n\n\n\n\n\nReferences\n\nFabbro, Thomas. 2021. Sse: Sample Size Estimation. https://CRAN.R-project.org/package=sse.\n\n\nHaynes, Alan G., Armando Lenz, Odile Stalder, and Andreas Limacher. 2021. “‘Presize‘: An r-Package for Precision-Based Sample Size Calculation in Clinical Research.” Journal of Open Source Software 6 (60): 3118. https://doi.org/10.21105/joss.03118.\n\n\nLaw, Malcolm R., Hilary C. Watt, and Nicholas J. Wald. 2002. “The Underlying Risk of Death After Myocardial Infarction in the Absence of Treatment.” Archives of Internal Medicine 162 (21): 2405–10. https://doi.org/10.1001/archinte.162.21.2405.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Sample size calculation"
+    ]
+  },
+  {
+    "objectID": "ReportingGuidelines.html",
+    "href": "ReportingGuidelines.html",
+    "title": "Reporting guidelines",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\n\nReporting guidelines help improve readers understanding of a project (design, conduct, analysis, and interpretation) and enable them to better assess the validity of the projects results.\nBecause different project types require different things to be reports, there are many guidelines for reporting different types of projects.\n\nRandomised trials\n\nCONSORT - guidelines for publishing RCTs\n\nChecklist\nStatement\nFlow diagram\nDISCOURAGES USE OF P-VALUES/CONFIDENCE INTERVALS/STANDARD ERRORS IN DESCRIPTIVE TABLES (e.g. Table 1) - POSSIBLY USEFUL TO REFUTE REVIEWER REQUESTS FOR THEM (see also the Datamethods reference collection on “common myths”)\nExtension for adaptive designs\n\n(checklist in the supplementary materials)\n\n\n\n\n\nObservational studies\n\nSTROBE - guidelines for reporting of observational studies\n\nSTROBE website\nSTROBE checklists\nThe STROBE statement itself has been published in many journals (see here)\n\n\n\n\nSystematic reviews and meta analyses\n\nPRISMA - guidelines for transparent reporting of systematic reviews\n\nHomepage\nChecklist\nExtensions to the original statement\nLink registration details page where registrations are actually made on PROSPERO\nNote that systematic reviews/metaanalyses are sometimes/often rejected by journals for not having been registered\n\n\n\n\nPredictive models\n\nTRIPOD - guidelines for reporting of predictive/prognostic models (validation or derivation)\n\nMoons et al 2015\nMoons et al 2012\nTRIPOD checklists\nAlternate site for derivation/validation checklist\n\n\nNot a reporting guideline per se, but a method of assessing risk of bias and applicability of prediction model studies - PROBAST\n\nPROBAST paper\nfurther explanations and elaboration of PROBAST\nuseful along side TRIPOD perhaps?\nuse of PROBAST to assess ML models in ocology. Long story short, most models are high risk &gt; 123 (81%, 95% CI: 73.8 to 86.4) developed models and 19 (51%, 95% CI: 35.1 to 67.3) validated models were at high risk of bias due to their analysis, mostly due to shortcomings in the analysis including insufficient sample size and split-sample internal validation\n\n\n\nOthers\n\nLatent trajectory studies (GRoLTS)\n\nThe GRoLTS-Checklist: Guidelines for Reporting on Latent Trajectory Studies\n\n\n\n\nFind additional guidelines\n\nThe new open-access database LIGHTS - Library of Guidance for Health Scientists - is a very usefull tool to support the search for methods guidance.\nThe EQUATOR Network also has links to many other guidelines (SPIRIT, CARE, AGREE, …)\nThe COMET Initiative has a searchable list of standardised outcome sets for diseases, conditions etc.",
+    "crumbs": [
+      "Home",
+      "Guidance",
+      "Reporting guidelines"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Welcome",
+    "section": "",
+    "text": "This site provides access to tools and advice from statisticians of the SCTO Statistics & Methodology Platform.\nThe overarching aim of the statistics and methodological platform is to develop open access resources supporting the conception, completion and dissemination of clinical research. We help projects to:\n\ndevelop statistical softwares & packages,\nwrite guidelines & tutorials,\ninventory essential guidelines and available training options in Switzerland.\n\nAs part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. Additional tools and resources can be found on the Tools & Resources website by the SCTO Platforms.\n\n\n\n\n\n\nImportant\n\n\n\nThis is site is currently only for demonstration purposes. It is more conceptual than anything else.\nContent will be modified without warning or the site may be removed without notice.\nWe make no guarantees on the accuracy of the information presented.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "DataSharing.html",
+    "href": "DataSharing.html",
+    "title": "Data sharing",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\nData sharing has become a requirement of many funding bodies and is becoming a scientific standard in many disciplines. In medical research, however, data sharing can conflict with clinicians’ obligation to protect patients’ privacy. Although general recommendations on data sharing already exist for clinical research, they are often not applicable to aspects specific to Switzerland. The guidance document from the SCTO’s CTU Network fills this gap: it provides practical recommendations for all relevant aspects of data sharing in accordance with legislation in Switzerland. Included in the guidelines are details of aspects are to be considered, decision-making criteria, examples, and checklists – all of which aim to support clinical research data sharing in practice.\nThe full guidance can be found onthe Tools & Resources website by the SCTO Platforms.",
+    "crumbs": [
+      "Home",
+      "Guidance",
+      "Data sharing"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html",
+    "href": "baselinetables.html",
+    "title": "Make a baseline table",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html#in-r",
+    "href": "baselinetables.html#in-r",
+    "title": "Make a baseline table",
+    "section": "In R",
+    "text": "In R\n\nData\n\nlibrary(dplyr)\nlibrary(Hmisc)\ndata(mtcars)\nmtcars$am_f &lt;- factor(mtcars$am, 0:1, c(\"Manual\", \"Automatic\")) \nmtcars$vs_f &lt;- factor(mtcars$vs, 0:1, c(\"V\", \"Straight\")) \nd &lt;- mtcars %&gt;%  select(mpg, cyl, am_f,vs_f)\nHmisc::label(d$mpg) &lt;- \"Miles per gallon\"\nHmisc::label(d$cyl) &lt;- \"Cylinders\"\nHmisc::label(d$am_f) &lt;- \"Transmission\"\nHmisc::label(d$vs_f) &lt;- \"Engine\"\n\n\n\nUsing gtsummary\n\n#Make a table stratified by transmission\nlibrary(gtsummary)\nd %&gt;%  tbl_summary(by = am_f)\n\n\n\n\n\n\n\n\n\n\n\n\nCharacteristic\nManual, N = 191\nAutomatic, N = 131\n\n\n\n\nMiles per gallon\n17.3 (15.0, 19.2)\n22.8 (21.0, 30.4)\n\n\nCylinders\n\n\n\n\n\n\n    4\n3 (16%)\n8 (62%)\n\n\n    6\n4 (21%)\n3 (23%)\n\n\n    8\n12 (63%)\n2 (15%)\n\n\nEngine\n\n\n\n\n\n\n    V\n12 (63%)\n6 (46%)\n\n\n    Straight\n7 (37%)\n7 (54%)\n\n\n\n1 Median (IQR); n (%)\n\n\n\n\n\n\n\n\nThis is the basic usage:\n\nvariable types are automatically detected so that appropriate descriptive statistics are calculated,\nlabel attributes from the data set are automatically printed,\nmissing values are listed as “Unknown” in the table,\nvariable levels are indented and footnotes are added.\n\nDefaults options may be customized.\n\n# declare cylinders as a continuous variable,\n# for this variable calculate the mean and sd value,\n# add an overall column, \n# change the missing text\nd %&gt;%\n        tbl_summary(by = am_f, \n                    type = list(cyl ~ 'continuous'),\n                    statistic = list(cyl ~ \"{mean} ({sd})\"),\n                    missing_text = \"Missing\") %&gt;%\n        add_overall()\n\n\n\n\n\n\n\n\n\n\n\n\n\nCharacteristic\nOverall, N = 321\nManual, N = 191\nAutomatic, N = 131\n\n\n\n\nMiles per gallon\n19.2 (15.4, 22.8)\n17.3 (15.0, 19.2)\n22.8 (21.0, 30.4)\n\n\nCylinders\n6.19 (1.79)\n6.95 (1.54)\n5.08 (1.55)\n\n\nEngine\n\n\n\n\n\n\n\n\n    V\n18 (56%)\n12 (63%)\n6 (46%)\n\n\n    Straight\n14 (44%)\n7 (37%)\n7 (54%)\n\n\n\n1 Median (IQR); Mean (SD); n (%)\n\n\n\n\n\n\n\n\n\nAdditional information\nOnce produced gtsummary tables can be converted to your favorite format (e.g. html/pdf/word).\nFor more information see here. For detailed tutorial and additional options see the very complete vignette and website\n\n\n\nUsing atable\n\nlibrary(atable)\ntable1=atable(d,\n       target_cols = c(\"mpg\" , \"cyl\" , \"vs_f\"),\n       group_col = \"am_f\",\n       format_to=\"Word\")\n\n#Or similar using the formula interface\n## Not run: \ntable1=atable(mpg+cyl+ vs_f ~ am_f, d,format_to=\"Word\")\n## End(Not run)\n\ntable1\n\n                   Group    Manual Automatic      p stat   Effect Size (CI)\n1          Observations                                                    \n2                               19        13   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n3  Miles per gallon                                                        \n4              Mean (SD)  17 (3.8)  24 (6.2) 0.0019 0.64 -1.5 (-2.3; -0.65)\n5        valid (missing)    19 (0)    13 (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n6             Cylinders                                                    \n7              Mean (SD) 6.9 (1.5) 5.1 (1.6)  0.013 0.48      1.2 (0.41; 2)\n8        valid (missing)    19 (0)    13 (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n9                Engine                                                    \n10                     V  63% (12)   46% (6)   0.56 0.35       2 (0.38; 11)\n11              Straight   37% (7)   54% (7)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n12               missing    0% (0)    0% (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n\n\nBy default atable is printing p-values, test statistics as well as effect sizes with a 95% confidence interval. As stated above, baseline tables are descriptive tables and should not contain this type of information. Don’t forget to remove the columns.\n\ntable1=table1%&gt;%select(-\"p\",-\"stat\",-\"Effect Size (CI)\")\ntable1\n\n                   Group    Manual Automatic\n1          Observations                     \n2                               19        13\n3  Miles per gallon                         \n4              Mean (SD)  17 (3.8)  24 (6.2)\n5        valid (missing)    19 (0)    13 (0)\n6             Cylinders                     \n7              Mean (SD) 6.9 (1.5) 5.1 (1.6)\n8        valid (missing)    19 (0)    13 (0)\n9                Engine                     \n10                     V  63% (12)   46% (6)\n11              Straight   37% (7)   54% (7)\n12               missing    0% (0)    0% (0)\n\n\nThe table may also be split up by strata. For example, we can decide to present separately the characteristics of car with a “V” or a “Straight” engine.\n\ntable1=atable(mpg+cyl  ~ am_f|vs_f , d,\n              format_to=\"Word\")\ntable1=table1%&gt;%select(-\"p\",-\"stat\",-\"Effect Size (CI)\")\ntable1\n\n                        Group    Manual Automatic\n1                         V                      \n2           Observations                         \n3                                    12         6\n4       Miles per gallon                         \n5                   Mean (SD)  15 (2.8)    20 (4)\n6             valid (missing)    12 (0)     6 (0)\n7                  Cylinders                     \n8                   Mean (SD)     8 (0) 6.3 (1.5)\n9             valid (missing)    12 (0)     6 (0)\n10                 Straight                      \n11          Observations                         \n12                                    7         7\n13      Miles per gallon                         \n14                  Mean (SD)  21 (2.5)  28 (4.8)\n15            valid (missing)     7 (0)     7 (0)\n16                 Cylinders                     \n17                  Mean (SD) 5.1 (1.1)     4 (0)\n18            valid (missing)     7 (0)     7 (0)\n\n\nAs gtsummary, atable may be exported in different formats (e.g. LATEX, HTML, Word) and it is intended that some parts of atable can be altered by the user. For more details see Ströbel (2019) as well as the package vignette. An other informative vignette can be found by typing the following command in R:\n\nvignette(\"modifying\", package = \"atable\")",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html#in-stata",
+    "href": "baselinetables.html#in-stata",
+    "title": "Make a baseline table",
+    "section": "In Stata",
+    "text": "In Stata\n\nUsing btable\nThe table is constructed in a two-step approach using two functions: btable() produces an unformatted, raw table, which is then formatted by btable_format to produce a final, publication-ready table. By default, the raw table contains all summary measures, and—if there are two groups—effect measures and p-values. Optionally, the table can be restricted to effect measures of choice and a number of alternative calculations for confidence intervals are available.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html#instalation",
+    "href": "baselinetables.html#instalation",
+    "title": "Make a baseline table",
+    "section": "Instalation",
+    "text": "Instalation\n\n#In order to install btable from github the github-package is required:\nnet install github, from(\"https://haghish.github.io/github/\")\n#You can then install the development version of btable with:\ngithub install CTU-Bern/btable",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html#example",
+    "href": "baselinetables.html#example",
+    "title": "Make a baseline table",
+    "section": "Example",
+    "text": "Example\n\n# load example dataset\nsysuse auto2\n# generate table\nbtable price mpg rep78 headroom, by(foreign) saving(\"excars\") denom(nonmiss)\n# format table (default formatting, removing the effect measures and P-values)\nbtable_format using \"excars\", clear drop(effect test)\n\n\nThe formatting option can be modified. For example we can decide we may want to\n\npresent the median and lower and upper quartiles instead of the mean and standard deviation\nremove the overall column, and the information column\n\n\n#If we want to display median [lq, up] for all the continuous variables\nbtable_format using \"excars\", clear descriptive(conti median [lq, uq]) drop(effect test total info)\n#If we want to display mean (sd) for the mpg variable and median [lq, up] for all the other continuous variables\nbtable_format using \"excars\", clear desc(conti median [lq, uq] mpg mean (sd)) drop(effect test total info)\n\n\n\n Domestic (N = 52)Foreign (N = 22)mean (sd), median [lq, uq] or n (%)mean (sd), median [lq, uq] or n (%)Price4783 [4184, 6234]5759 [4499, 7140]Mileage (mpg)20 (4.7)25 (6.6)Repair Record 1978Poor2 (4.2%)0 (0.00%)Fair8 (17%)0 (0.00%)Average27 (56%)3 (14%)Good9 (19%)9 (43%)Excellent2 (4.2%)9 (43%)Headroom (in.)3.5 [2.3, 4.0]2.5 [2.5, 3.0]",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About us & contact",
+    "section": "",
+    "text": "About us\nThis site was developed by statisticians of the SCTO Statistics & Methodology Platform.\nThe SCTO Statistics & Methodology Platform is a network of statisticians working in Swiss Clinical Trial Units, universities, and cantonal hospitals. As part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. More information can be found on the Tools & Resources website by the SCTO Platforms.\n\n\nGet in touch with us\nDo you have any questions or suggestions? Feel free to contact us using the form here.\nDirect support for clinical studies and research projects can also be provided by your local CTU:\n\nDKF Basel\nCTU Bern\nCRC Geneva\nCRC Lausanne\nCTU-EOC Lugano\nCTU St.Gallen\nCTC Zürich",
+    "crumbs": [
+      "Home",
+      "About us & contact"
+    ]
+  },
+  {
+    "objectID": "AdjustedSurvivalCurves.html",
+    "href": "AdjustedSurvivalCurves.html",
+    "title": "Adjusted survival curves",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Adjusted survival curves"
+    ]
+  },
+  {
+    "objectID": "AdjustedSurvivalCurves.html#knowledge-from-the-crystal-ball",
+    "href": "AdjustedSurvivalCurves.html#knowledge-from-the-crystal-ball",
+    "title": "Adjusted survival curves",
+    "section": "Knowledge from the crystal ball",
+    "text": "Knowledge from the crystal ball\nBecause we simulated the data, we know that medication has no effect on mortality.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Adjusted survival curves"
+    ]
+  },
+  {
+    "objectID": "AdjustedSurvivalCurves.html#descriptive-table",
+    "href": "AdjustedSurvivalCurves.html#descriptive-table",
+    "title": "Adjusted survival curves",
+    "section": "Descriptive table",
+    "text": "Descriptive table\nThe table below shows a descriptive summary of the study population, by medication.\ndata %&gt;% \n  tbl_summary(by = medi) \n\n\n\n\n\n\nCharacteristic\n0, N = 1721\n1, N = 3281\n\n\n\n\nfup\n8 (3, 17)\n6 (3, 14)\n\n\ndeath\n65 (38%)\n156 (48%)\n\n\nenzyme\n64 (37%)\n199 (61%)\n\n\nfemale\n102 (59%)\n210 (64%)\n\n\n\n1 Median (IQR); n (%)",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Adjusted survival curves"
+    ]
+  },
+  {
+    "objectID": "AdjustedSurvivalCurves.html#unadjusted-kaplan-meier-curve-and-cox-modelling",
+    "href": "AdjustedSurvivalCurves.html#unadjusted-kaplan-meier-curve-and-cox-modelling",
+    "title": "Adjusted survival curves",
+    "section": "Unadjusted Kaplan-Meier curve and Cox-modelling",
+    "text": "Unadjusted Kaplan-Meier curve and Cox-modelling\nA naive (unadjusted) survival analysis of the data reveals the following Kaplan-Meier plot. We conclude that the medication has an effect on survival.\n\nmod &lt;- survfit(Surv(fup, death) ~ medi, data = data)\nggsurvplot(mod, data = data, palette = c(\"#CC0000\", \"black\"), censor = FALSE)\n\n\n\n\n\n\n\n\n\nmod_cox_unadjusted &lt;- coxph(Surv(fup, death) ~ medi, data = data)\nmod_cox_unadjusted\n\nCall:\ncoxph(formula = Surv(fup, death) ~ medi, data = data)\n\n       coef exp(coef) se(coef)     z      p\nmedi 0.3345    1.3973   0.1479 2.262 0.0237\n\nLikelihood ratio test=5.34  on 1 df, p=0.0209\nn= 500, number of events= 221 \n\n\nAn unadjusted Cox proportional hazard model shows that patients with medication have 1.4 higher hazard of death compared to those without medication.\n\nmod_cox_adjusted &lt;- coxph(Surv(fup, death) ~ medi + enzyme + female, data = data)\nmod_cox_adjusted\n\nCall:\ncoxph(formula = Surv(fup, death) ~ medi + enzyme + female, data = data)\n\n           coef exp(coef) se(coef)      z      p\nmedi    0.01920   1.01938  0.14993  0.128  0.898\nenzyme  2.12737   8.39280  0.20308 10.475 &lt;2e-16\nfemale -0.03787   0.96284  0.16500 -0.230  0.818\n\nLikelihood ratio test=179.2  on 3 df, p=&lt; 2.2e-16\nn= 500, number of events= 221 \n\n\nWhat happens if we adjust for enzym and sex? Then the effect of the medication on death vanishes (hazard ratio=1.02).",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Adjusted survival curves"
+    ]
+  },
+  {
+    "objectID": "AdjustedSurvivalCurves.html#ipw-modelling",
+    "href": "AdjustedSurvivalCurves.html#ipw-modelling",
+    "title": "Adjusted survival curves",
+    "section": "IPW modelling",
+    "text": "IPW modelling\nAn IPW modelling approach constructs treatment weights (here medication) given known covariates (here sex and enzyme) using a logistic regression model.\n\n# IPW denominator\nmod &lt;- glm(medi ~ female + enzyme, data = data, family = binomial())\n\ndata$ipw &lt;- NA\n# Probabilty of treatment\ndata$ipw &lt;- predict(mod, data = data, type = \"response\")\n# Probabilty of non-treatment\ndata$ipw[data$medi==0] &lt;- 1 - predict(mod, data = data, type = \"response\")[data$medi == 0]\n\nWe construct stabilized weights, since they can provide narrower confidence intervals (Hernán and Robins (2022)).\n\n# Stabilized weights\nmod0 &lt;- glm(medi ~ 1, data = data, family = binomial())\ndata$ipw0 &lt;- predict(mod0, data = data, type = \"response\")\ndata$ipw0[data$medi == 0] &lt;- 1 - predict(mod0, data = data, type = \"response\")[data$medi == 0]\ndata$ipw &lt;- data$ipw0 / data$ipw\n\nAn IPW adjusted Kaplan-Meier curve reveals that medication has no effect on survival:\n\n# Set survey design\nsvy_design &lt;- svydesign(id = ~1, weights = ~ipw, data = data)\n\n# IPW adjusted Kaplan-Meier\nkm_fit &lt;- svykm(Surv(fup, death) ~ medi, design = svy_design)\n\nkm_df &lt;- data.frame(time = km_fit$`1`$time, surv = km_fit$`1`$surv, strata = \"medi=1\")\nkm_df &lt;- bind_rows(km_df, data.frame(time=km_fit$`0`$time, surv=km_fit$`0`$surv, strata = \"medi=0\"))\nggsurvplot_df(km_df, palette = c(\"#CC0000\", \"black\"), censor=FALSE)\n\n\n\n\n\n\n\n\n\nmod_cox_ipw_adjusted &lt;- svycoxph(Surv(fup, death) ~ medi, design = svy_design)\nsummary(mod_cox_ipw_adjusted)\n\nIndependent Sampling design (with replacement)\nsvydesign(id = ~1, weights = ~ipw, data = data)\n\n\nCall:\nsvycoxph(formula = Surv(fup, death) ~ medi, design = svy_design)\n\n  n= 500, number of events= 221 \n\n         coef exp(coef) se(coef) robust se      z Pr(&gt;|z|)\nmedi -0.04057   0.96024  0.14165   0.14255 -0.285    0.776\n\n     exp(coef) exp(-coef) lower .95 upper .95\nmedi    0.9602      1.041    0.7262      1.27\n\nConcordance= 0.494  (se = 0.019 )\nLikelihood ratio test= NA  on 1 df,   p=NA\nWald test            = 0.08  on 1 df,   p=0.8\nScore (logrank) test = NA  on 1 df,   p=NA\n\n  (Note: the likelihood ratio and score tests assume independence of\n     observations within a cluster, the Wald and robust score tests do not).\n\n\nThis is confirmed by an IPW adjusted Cox regression model (hazard ratio=0.96).",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Adjusted survival curves"
+    ]
+  },
+  {
+    "objectID": "courses.html",
+    "href": "courses.html",
+    "title": "Courses",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\nInformation presented in this website is updated twice a year. Where possible, a website is indicated where users can find complete and up-to-date description of the training.\nInstitutions are responsible for the quality of the training opportunities they provide.\n\n\nThis page provides a (non-exhaustive) list of statistically oriented courses that are held in Switzerland. A more general overview of clinical research training opportunities of the SCTO’s Clinical Trial Unit (CTU) Network can be found on the Clinical Research Careers website\n\n\nCourses are run in the following approximate locations:",
+    "crumbs": [
+      "Home",
+      "Courses"
+    ]
+  },
+  {
+    "objectID": "IDMC.html",
+    "href": "IDMC.html",
+    "title": "SCTO statisticians in IDMC",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\n\nStatisticians of the SCTO Statistics & Methodology Platform wrote a white paper describing the role of a statistician from a Swiss Clinical Trial Organisation (SCTO) associated body when taking on the role of independent statistician in an Independent Data Monitoring Committee (IDMC) for a study conducted with the participation of a SCTO network partner. In this statement, the Statistics and Methodology Platform proposes a framework for efficient collaboration between SCTO network partners to the assignment of statisticians to this role.\nThe full paper can be found and download on the SCTO website",
+    "crumbs": [
+      "Home",
+      "Guidance",
+      "SCTO statisticians in IDMC"
+    ]
   },
   {
     "objectID": "Links.html",
     "href": "Links.html",
     "title": "Links",
     "section": "",
-    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\n\n\nCenter for Reproducible Science\nThe CRS is an approved Center of Competence of the University of Zurich. The objective of the Center for Reproducible Science is to train the next generation of researchers in good research practices, to develop novel methodology related to reproducibility and replicability, and to improve the quality of scientific investigation using meta-science."
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\n\n\nCenter for Reproducible Science\nThe CRS is an approved Center of Competence of the University of Zurich. The objective of the Center for Reproducible Science is to train the next generation of researchers in good research practices, to develop novel methodology related to reproducibility and replicability, and to improve the quality of scientific investigation using meta-science.",
+    "crumbs": [
+      "Home",
+      "Links"
+    ]
+  },
+  {
+    "objectID": "safetyreporting.html",
+    "href": "safetyreporting.html",
+    "title": "Safety reporting in clinical trials",
+    "section": "",
+    "text": "The safety of research participants is of utmost importance and must be considered for various processes and decisions throughout a clinical study. As such, trialists must be vigilant with regards to participant safety. Many regulatory authorities require regular updates with regards to safety. Swissethics, for instance, requires expedited reporting of some safety events, as well as an Annual Safety Report (ASR).\nFor more information about the conduct of clinical trial and safety reporting, we recommend the following pages: Easy GCS, Safety Reporting Forms.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Safety reporting in clinical trials"
+    ]
+  },
+  {
+    "objectID": "safetyreporting.html#annual-safety-reports-in-practice",
+    "href": "safetyreporting.html#annual-safety-reports-in-practice",
+    "title": "Safety reporting in clinical trials",
+    "section": "Annual Safety Reports, in practice",
+    "text": "Annual Safety Reports, in practice\n\nDefinition of the reporting phase\nOften, the requirement is to submit any safety events that have occurred in at least the last 12 months of a trial. We believe that this is not sensible. In our opinion, all events that have occurred since the beginning of the trial should be reported.\n\n\n\n\n\n\nNote\n\n\n\nSimilarly, for medical devices, a cumulative list for the full study period needs to be submitted as part of expedited reporting following MDCG 2020-10/1\n\n\nSuppose a trial was approved on the first of January 2020. This requires that ASRs be submitted each January. Now, suppose that the first years report is sent on the 3rd January 2021. On the 10th January 2021, during a follow up visit, we are informed that an event occurred the previous August (or February, or October, or December). The event should therefore have been reported in the recent report, but wasn’t as we were unaware of it. Using the events-occuring-in-the-previous-12-months approach, the event will also not be reported in the next report (covering year 2 in 2022), as it occurred during year 1. Furthermore, events that were unresolved at the time of the year 1 ASR will never be reported as resolved, as the event is only reported once.\n\n\nProducing a safety report\nTemplates for writing an ASR are available on swissethics and the SCTO platforms websites.\nMembers of the SCTO Statistics Platform have prepared an R package, SwissASR, to assist in completing the swissethics ASR template. If you provide a dataframe containing the safety data, and the information necessary for the ASR report as listed below, the function will automatically return a filled out ASR report in MS Word format. This could then be forwarded to the PI for supplemental input (e.g. completion of relevant check boxes and the summary of the safety evaluation section), signing and submission to the relevant authorities.\n\n\n\n\n\nflowchart LR\n\n  db[(Database\\ne.g. REDCap, \\n secuTrial)] --&gt; R\n  subgraph R\n  direction TB\n  r1(Any necessary \\n modification of data \\n e.g. recoding, renaming) --&gt; r2[ &lt;tt&gt;SwissASR::asr&lt;/tt&gt; ]\n  end\n  R --&gt; Word\n  Word --&gt; Sponsor\n  Sponsor --&gt; reg[Regulatory\\nauthorities]\n\n\n\n\n\n\n\n\nExample SwissASR code\n\n# install the package\n# install.packages(\"SwissASR\", repos = \"https://ctu-bern.r-universe.dev\")\n# load the package\nlibrary(SwissASR)\n\n# Load the dataset containing the safety event data\n# Here we use the example dataset 'asr_sae'. Your dataset should have the same format.\n# If you have different column names, you can rename them, or use the var_* options \n# to specify the names of the relevant variables \n# For more information about the function, including the var_* options, please check\n# the package helpfiles\ndata(asr_sae)\n\n# Execute the function to produce the report\nasr(\n  asr_sae,                 # dataset containing the safety event data\n  \"Trial_ASR.docx\",        # report filename\n  # trial info\n  trial_title = \"Example Trial Name\",\n  protocol_number = \"20221002130\",\n  basec_number = \"....\",\n  snctp_number = \"202200458\",\n  swissmedic_number = \"....\",\n  ec_name = \"Kantonale Ethikskommision Bern\",\n  product_name = \"Drug name\",\n  international = FALSE,\n  trial_type = \"imp\",      # IMP/MD/Other\n  # Sponsor info\n  sponsor_contact = \"Sponsor name, Sponsor phone number, Sponsor email\",\n  inst_name_address = \"Institute name, Institute address\",\n  # site info\n  n_centers_t = 20,        # total number\n  n_centers_p = 20,        # planned\n  n_centers_c = 0,         # closed - derive from data\n  n_centers_o = 18,        # open - derive from data\n  # participant info\n  n_pat_t = 1000,          # target\n  n_pat_e = 300,           # enrolled - derive from data\n  n_pat_c = 0,             # complete - derive from data\n  n_pat_p = 0,             # prematurely terminated - derive from data\n  # report info\n  report_date = format(Sys.Date(), format = \"%d/%m/%Y\"), # todays date\n  period_from = as.Date(\"2020-11-01\"), # ideally trial start date\n  period_to = Sys.Date()\n)\n\nElements marked with derive from data can be set such that the code extracts those points from the database and fills them in automatically.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Safety reporting in clinical trials"
+    ]
+  },
+  {
+    "objectID": "software.html",
+    "href": "software.html",
+    "title": "Software packages",
+    "section": "",
+    "text": "Working with statistical software is the daily business of our statisticians. Most software languages allow their users to create their own packages of custom functions to reduce errors in repeated tasks. The software used by SCTO statisticians, primarily R and Stata, are no different in this respect. This page provides an overview of some.",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#presize---precision-based-sample-size-estimation",
+    "href": "software.html#presize---precision-based-sample-size-estimation",
+    "title": "Software packages",
+    "section": "presize - precision based sample size estimation",
+    "text": "presize - precision based sample size estimation\n    \npresize is an R package for precision based sample size calculation. It provides a large number of methods for estimating the number of samples required to gain a confidence interval of a given width, or the width that might be expected with a given sample size.\n\n\nExample\n\nAssuming that we want to estimate the confidence interval (CI) around the sensitivity of a test, but we’re not sure of the sensitivity, we can estimate the CI width in a range of scenarios as follows.\n\n\nCode\nlibrary(presize)\n# set up a range of scenarios\nscenarios &lt;- expand.grid(sens = seq(.5, .95, .1),\n                         prev = seq(.1, .2, .04),\n                         ntot = c(250, 350))\n# calculate the CI width at ntot individuals with prev prevalence of event\nscenario_data &lt;- prec_sens(sens = scenarios$sens, \n                           prev = scenarios$prev, \n                           ntot = scenarios$ntot, \n                           method = \"wilson\")\n# plot the scenarios with ggplot2\nscenario_df &lt;- as.data.frame(scenario_data)\nlibrary(ggplot2)\nggplot(scenario_df, \n       aes(x = sens, \n           y = conf.width, \n           # convert colour to factor for distinct colours rather than a continuum\n           col = as.factor(prev), \n           group = prev)) +\n  geom_line() +\n  labs(x = \"Sensitivity\", y = \"CI width\", col = \"Prevalence\") + \n  facet_wrap(vars(ntot))\n\n\n\n\n\n\n\n\n\n\nFor ease of use, presize also includes a shiny app for point-and-click use, which is also available on the internet.\n\n\nInstallation\n\npresize can be installed in R via the following methods:\n# from CRAN (the stable version)\ninstall.packages(\"presize\")\n\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"presize\", repos = \"https://ctu-bern.r-universe.dev/\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#redcaptools---a-package-for-working-with-redcap-data-in-r",
+    "href": "software.html#redcaptools---a-package-for-working-with-redcap-data-in-r",
+    "title": "Software packages",
+    "section": "redcaptools - a package for working with REDCap data in R",
+    "text": "redcaptools - a package for working with REDCap data in R\n  \nREDCap is a popular database for clinical research, used by many of the CTUs in Switzerland. One aggravation with REDCap data exports is that the data is in one file which can contain a lot of empty cells when more complicated database designs are used. redcaptools has tools to automatically pull the database apart into forms for easier use. Similar to secuTrialR, it also labels variables, and prepares date and factor variables. The function is primarily for interacting with REDCap via the Application Programming Interface (API), allowing easy scripted exports.\n\n\nExample\n\nBy supplying the API token generated by REDCap, together with the APIs URL, the redcap_export_byform function can be used to export all data from the database by form. Each form is returned as an element of a list.\n\nlibrary(redcaptools)\ntoken &lt;- \"some-long-string-provided-by-redcap\"\nurl &lt;- \"https://link.to.redcap/api/\"\ndat &lt;- redcap_export_byform(token, url)\n\nThe ‘normal’ format can be exported via the redcap_export_tbl function:\n\nrecord_data &lt;- redcap_export_tbl(token, url, \"record\")\nmeta &lt;- redcap_export_tbl(token, url, \"metadata\")\n\nThis function can also be used to export various other API endpoints (e.g. various types of metadata etc, specific forms).\nThe data can then be formatted by using the metadata and the rc_prep function\n\nprepped &lt;- rc_prep(dat, meta)\n\n\n\n\nInstallation\n\nredcaptools can be installed in R via the following methods:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"redcaptools\", repos = \"https://ctu-bern.r-universe.dev/\")\n\n# from github\nremotes::install_github(\"CTU-Bern/redcaptools\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#selcorr---post-selection-inference-for-generalized-linear-models",
+    "href": "software.html#selcorr---post-selection-inference-for-generalized-linear-models",
+    "title": "Software packages",
+    "section": "selcorr - post-selection inference for generalized linear models",
+    "text": "selcorr - post-selection inference for generalized linear models\n \nselcorr calculates (unconditional) post-selection confidence intervals and p-values for the coefficients of (generalized) linear models.\n\n\nExample\n\n\nlibrary(selcorr)\n## linear regression:\nselcorr(lm(Fertility ~ ., swiss))\n\n## logistic regression:\nswiss.lr = within(swiss, Fertility &lt;- (Fertility &gt; 70))\nselcorr(glm(Fertility ~ ., binomial, swiss.lr))\n\nA parallel bootstrapping approach is also available.\n\n\nCode\nlibrary(future.apply)\nplan(multisession)\nboot.repl = future_replicate(8, selcorr(lm(Fertility ~ ., swiss), boot.repl = 1000,\nquiet = TRUE)$boot.repl, simplify = FALSE)\nplan(sequential)\nselcorr(lm(Fertility ~ ., swiss), boot.repl = do.call(\"rbind\", boot.repl))\n\n\n\n\n\nInstallation\n\nselcorr can be installed in R from CRAN:\n# from CRAN (the stable version)\ninstall.packages(\"selcorr\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#sse---sample-size-estimation",
+    "href": "software.html#sse---sample-size-estimation",
+    "title": "Software packages",
+    "section": "sse - sample size estimation",
+    "text": "sse - sample size estimation\n   \nsse is another R package for sample size calculation that has been in use at CTU Basel for many years. It’s approach is very general, allowing a wide range of scenarios to be assessed rapidly. Where presize is rather for precision-based calculations, sse is rather for hypothesis testing, although it is general enough that it can be used for both frameworks.\n\n\nExample\n\nWe want to find the sample size for comparing two means. We are unsure of the standard deviation to expect, so we assess the sample size across a range of standard deviations. Assuming that a standard deviation of 12 is appropriate in this case, and we want a power of 90%, we can plot the power curve:\n\n\nCode\nlibrary(sse)\n## defining the range of n and theta to be evaluated\npsi &lt;- powPar(\n  # SD values\n  theta = seq(from = 5, to = 20, by = 1),\n  # sample sizes\n  n = seq(from = 5, to = 50, by = 2),\n  # group means\n  muA = 0,\n  muB = 20)\n## define a function to return the power in each scenario\npowFun &lt;- function(psi){\n  power.t.test(n = n(psi)/2,\n               delta = pp(psi, \"muA\") - pp(psi, \"muB\"),\n               sd = theta(psi)\n  )$power\n}\n## evaluate the power-function for all combinations of n and theta\ncalc &lt;- powCalc(psi, powFun)\n\n## choose one particular example at theta of 1 and power of 0.9\npow &lt;- powEx(calc, theta = 12, power = 0.9)\n## drawing the power plot with 3 contour lines\nplot(pow,\n     xlab = \"Standard Deviation\",\n     ylab = \"Total Sample Size\",\n     at = c(0.85, 0.9, 0.95))\n\n\n\n\n\n\n\n\n\n\n\n\nInstallation\n\nsse can be installed in R via the following methods:\n# from CRAN (the stable version)\ninstall.packages(\"sse\")\n\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"sse\", repos = \"https://ctu-bern.r-universe.dev/\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#sts_graph_landmark---landmark-analysis-graphs",
+    "href": "software.html#sts_graph_landmark---landmark-analysis-graphs",
+    "title": "Software packages",
+    "section": "sts_graph_landmark - landmark analysis graphs",
+    "text": "sts_graph_landmark - landmark analysis graphs\n \nsts_graph_landmark is a Stata program to create landmark analysis Kaplan-Meier curves, complete with risk table.\n\n\nExample\n\nUsing sts_graph_landmark is consistent with the other sts_* programs in Stata. The dataset should be stset and then sts_graph_landmark can be called specifying the landmark time in at.\n\n\nCode\n# load example dataset (note: this example is nonsensical and only for graphing purposes)\nwebuse stan3, clear\n# set data as survival data\nstset t1, failure(died) id(id)\n# label treatment arms \nlabel define posttran_l 0 \"prior transplantation\" 1 \"after transplantation\"\nlabel value posttran posttran_l\n# create landmark plot and table \nsts_graph_landmark, at(200) by(posttran) risktable\n\n\n\n\n\n\nInstallation\n\nIt can be installed from github:\nnet install github, from(\"https://haghish.github.io/github/\")\ngithub install CTU-Bern/sts_graph_landmark",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#secutrialr---import-secutrial-datasets-to-r",
+    "href": "software.html#secutrialr---import-secutrial-datasets-to-r",
+    "title": "Software packages",
+    "section": "secuTrialR - import secuTrial datasets to R",
+    "text": "secuTrialR - import secuTrial datasets to R\n    \n\nsecuTrial datasets consist of a lot of files and it can be difficult to get to grips with them. secuTrialR tries to reduce the burden by providing a method to import and format (e.g. adding labels to variables) and explore data.\n\n\nExample\n\nData can be read into R using read_secuTrial. The visit_structure function gives an idea of which forms are required at which visit. plot_recruitment is for plotting trial recruitment.\n\nCode\nlibrary(secuTrialR)\n# prepare path to example export\nexport_location &lt;- system.file(\"extdata\", \"sT_exports\", \"snames\",\n                               \"s_export_CSV-xls_CTU05_short_miss_en_utf8.zip\",\n                               package = \"secuTrialR\")\n# read all export data\nsT_export &lt;- read_secuTrial(data_dir = export_location)\nplot(visit_structure(sT_export))\nplot_recruitment(sT_export)\n\n\n\n\n\n\n\n\n\n\n\n\nsecuTrialR was developed by the data management platform with substantial input from members of the statistics and methodology platform.\n\n\nInstallation\n\nsecuTrialR can be installed in R via the following methods:\n# from CRAN (the stable version)\ninstall.packages(\"secuTrialR\")\n\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"secuTrialR\", repos = \"https://ctu-bern.r-universe.dev/\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#accrualplot---simple-creation-of-accrual-plots",
+    "href": "software.html#accrualplot---simple-creation-of-accrual-plots",
+    "title": "Software packages",
+    "section": "accrualPlot - simple creation of accrual plots",
+    "text": "accrualPlot - simple creation of accrual plots\n   \naccrualPlot is an R package for summarizing trial recruitment data. With relatively little code, it is possible to create various plots and tables useful for recruitment reports, as well as predict the end of recruitment based on the recruitment to date.\n\n\nExample\n\naccrualPlot includes a simulated dataset of participants recruited into a trial in one of three sites. The accrual_create_df function is used to define the properties of the sites (e.g. start dates if that differs from the first participants recruitment date). The plot and summary functions can then be used to plot or tabulate the data. The data can be plot using either base graphics or ggplot2.\n\nCode\nlibrary(accrualPlot)\ndata(accrualdemo)\ndf &lt;- accrual_create_df(accrualdemo$date, by = accrualdemo$site)\n# cumulative recruitment\nplot(df, which = \"cum\", engine = \"ggplot2\")\n# absolute recruitment (daily/weekly/monthly)\nplot(df, which = \"abs\", engine = \"ggplot2\")\n# predict end date\nplot(df, which = \"pred\", target = 300, engine = \"ggplot2\")\n\n\nWarning in geom_point(aes(x = edate, y = targetm), col = col.pred, pch = pch.pred): All aesthetics have length 1, but the data has 79 rows.\nℹ Please consider using `annotate()` or provide this layer with data containing\n  a single row.\n\n\nCode\n# summary table\nlibrary(gt)\ngt(summary(df)) %&gt;% \n  tab_options(column_labels.hidden = TRUE)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCenter\nFirst participant in\nMonths accruing\nParticipants accrued\nAccrual rate (per month)\n\n\nSite 1\n09Jul2020\n3\n141\n45.98\n\n\nSite 2\n20Jul2020\n3\n88\n32.59\n\n\nSite 3\n04Sep2020\n1\n21\n18.00\n\n\nOverall\n09Jul2020\n3\n250\n81.52\n\n\n\n\n\n\n\n\n\n\nInstallation\n\naccrualPlot can be installed in R via the following methods:\n# from CRAN (the stable version)\ninstall.packages(\"accrualPlot\")\n\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"accrualPlot\", repos = \"https://ctu-bern.r-universe.dev/\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#btable---create-baseline-tables-in-stata",
+    "href": "software.html#btable---create-baseline-tables-in-stata",
+    "title": "Software packages",
+    "section": "btable - create baseline tables in Stata",
+    "text": "btable - create baseline tables in Stata\n \nCreating baseline tables is a repetitive task. Each paper needs one. btable provides a powerful approach to creating them. See the making baseline tables article for an example. More information on btable can be found here.\n\n\nInstallation\n\nbtable can be installed in Stata via the following method:\nnet install github, from(\"https://haghish.github.io/github/\")\ngithub install CTU-Bern/btable",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#btabler---format-tables-for-latex-reports",
+    "href": "software.html#btabler---format-tables-for-latex-reports",
+    "title": "Software packages",
+    "section": "btabler - format tables for LaTeX reports",
+    "text": "btabler - format tables for LaTeX reports\n  \nbtabler adds additional functionality to the xtable package such as merging column headers for use in tables for LaTeX. It was originally developed as an easy way to put tables generated by `btable` into LaTeX reports, hence the similarity in names.\n\n\nExample\n\n\nlibrary(btabler)\ndf &lt;- data.frame(name = c(\"\", \"\", \"Row 1\", \"Row2\"),\n                 out_t = c(\"Total\", \"mean (sd)\", \"t1\", \"t1\"),\n                 out_1 = c(\"Group 1\", \"mean (sd)\", \"g11\", \"g12\"),\n                 out_2 = c(\"Group 2\", \"mean (sd)\", \"g21\", \"g22\"))\nbtable(df, nhead = 2, nfoot = 0, caption = \"Table1\")\n\nWhich will look like this in after LaTeX has created your PDF:\n\n\n\n\nInstallation\n\nbtabler can be installed in R via the following method:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"btabler\", repos = \"https://ctu-bern.r-universe.dev/\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#hsar---create-reproducible-hospital-service-areas-in-r",
+    "href": "software.html#hsar---create-reproducible-hospital-service-areas-in-r",
+    "title": "Software packages",
+    "section": "HSAr - create reproducible hospital service areas in R",
+    "text": "HSAr - create reproducible hospital service areas in R\n   \nHospital service areas can be useful for hospital planning, but their main use is in small area research. They are traditionally made largely by hand, by assigning each location to the hospital where most residents go and then iteratively moving locations until two main criteria are fulfilled - a HSA should not have detached islands, and at least 50% of it’s hospitalizations should stay there. The iterative steps are largely manual subjective work. As such the reproducibility of HSA creation is poor.\nHSAr provides an automated algorithm for creating HSAs by starting at the hospital and building the HSA around it until all regions in the provided shapefile are assigned to a HSA.\nHSAr was developed as part of national research programme 74, smarter health care.\n\n\nExample\n\n\n\n\nInstallation\n\nHSAr can be installed in R via the following method:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"HSAr\", repos = \"https://ctu-bern.r-universe.dev/\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#kpitools---tools-to-assist-with-risk-based-management-kpis",
+    "href": "software.html#kpitools---tools-to-assist-with-risk-based-management-kpis",
+    "title": "Software packages",
+    "section": "kpitools - tools to assist with risk based management KPIs",
+    "text": "kpitools - tools to assist with risk based management KPIs\n  \nIt is not enough to simply run a trial. ICH GCP E5 also requires risk based monitoring to be performed. kpitools provides a set of summary functions and a standardized format for presenting the key performance indicators (KPIs) that are typically defined for risk based monitoring strategies.\n\n\nExample\n\nIt could be that we believe that time of day might be an indicator of data fabrication because it’s not possible that participants are randomised at certain times of the day. The fab_tod function can help depict that..\n\nlibrary(kpitools)\n\nset.seed(12345)\ndat &lt;- data.frame(\n  x = lubridate::ymd_h(\"2020-05-01 13\") + 60^2*rnorm(40, 0, 3),\n  mean = rnorm(40, 56, 20),\n  by = sample(1:4, 40, prob = c(.2,.25,.4,.4), replace = TRUE)\n)\ndat %&gt;% kpi(\"mean\", kpi_fn_mean, by = \"by\") %&gt;% plot\ndat %&gt;% fab_tod(\"x\")\n\n\n\n\nInstallation\n\nkpitools can be installed in R via the following method:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"kpitools\", repos = \"https://ctu-bern.r-universe.dev/\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#stata_secutrial---some-stata-code-to-do-data-import-and-preparation-of-secutrial-datasets",
+    "href": "software.html#stata_secutrial---some-stata-code-to-do-data-import-and-preparation-of-secutrial-datasets",
+    "title": "Software packages",
+    "section": "stata_secutrial - some Stata code to do data import and preparation of secuTrial datasets",
+    "text": "stata_secutrial - some Stata code to do data import and preparation of secuTrial datasets\n \nSimilar to secuTrialR above, stata_secutrial provides Stata code to read and prepare secuTrial exports in Stata. It labels variables, formats date variables, adds labels to categorical variables etc, saving each form as a dta file for your further use.\n\n\nExample\n\nAssuming certain folders and globals have been prepared in advance (see GitHub for further information), using stata_secutrial may be as simple as entering\ndo SecuTrial_zip_data_import\ninto Stata and then navigating to your download when prompted.\n\n\n\nInstallation\n\nAs stata_secutrial is just code rather than a package, you can copy the files from GitHub and use then in you project. Towards the top of the GitHub page is a green code button. Click that and choose download ZIP. You can then unzip the files to your working directory.",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
+  },
+  {
+    "objectID": "software.html#swissasr---simplified-annual-safety-reports-with-r",
+    "href": "software.html#swissasr---simplified-annual-safety-reports-with-r",
+    "title": "Software packages",
+    "section": "SwissASR - simplified annual safety reports with R",
+    "text": "SwissASR - simplified annual safety reports with R\n  \nEthics and regulators often require annual safety reports. SwissASR provides a relatively easy way to produce annual safety reports according to the current template available on the SwissMedic(?) website. The function returns a word file with the safety data completed based on the data provided to it. Minimal additional details should then be added by the study team or principal investigator.\n\n\nExample\n\n\n\n\nInstallation\n\nSwissASR can be installed in R via the following method:\n# from CTU Bern's package universe (the development version)\ninstall.packages(\"SwissASR\", repos = \"https://ctu-bern.r-universe.dev/\")",
+    "crumbs": [
+      "Home",
+      "Software packages"
+    ]
   }
 ]
