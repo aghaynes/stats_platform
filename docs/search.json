@@ -60,6 +60,18 @@
     ]
   },
   {
+    "objectID": "tutorials.html#recommendations-for-compiling-database-in-excel",
+    "href": "tutorials.html#recommendations-for-compiling-database-in-excel",
+    "title": "Tutorials",
+    "section": "Recommendations for compiling database in Excel",
+    "text": "Recommendations for compiling database in Excel\n \nThis document is intended for anyone planning on compiling data into an Excel sheet. Although such practice does not comply with the Good Clinical Practice (GCP), some researchers still have recourse to it. Doing so without a statistician approving of certain features of the database can lead to problems later on ; during data cleaning, data processing and statistical analyses. For this reason, the present recommendations present the points one must observe in order mitigate as much as possible the problems that are inherent to Excel usage.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Overview"
+    ]
+  },
+  {
     "objectID": "tutorials.html#others",
     "href": "tutorials.html#others",
     "title": "Tutorials",
@@ -106,86 +118,26 @@
     ]
   },
   {
-    "objectID": "DataSharing.html",
-    "href": "DataSharing.html",
-    "title": "Data sharing",
+    "objectID": "excel_db.html",
+    "href": "excel_db.html",
+    "title": "Recommendations for compiling database in Excel",
     "section": "",
-    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\nData sharing has become a requirement of many funding bodies and is becoming a scientific standard in many disciplines. In medical research, however, data sharing can conflict with clinicians’ obligation to protect patients’ privacy. Although general recommendations on data sharing already exist for clinical research, they are often not applicable to aspects specific to Switzerland. The guidance document from the SCTO’s CTU Network fills this gap: it provides practical recommendations for all relevant aspects of data sharing in accordance with legislation in Switzerland. Included in the guidelines are details of aspects are to be considered, decision-making criteria, examples, and checklists – all of which aim to support clinical research data sharing in practice.\nThe full guidance can be found onthe Tools & Resources website by the SCTO Platforms.",
+    "text": "This document is intended for anyone planning on compiling data into an Excel sheet. Although such practice does not comply with the Good Clinical Practice (GCP), some researchers still have recourse to it. Doing so without a statistician approving of certain features of the database can lead to problems later on ; during data cleaning, data processing and statistical analyses. For this reason, the present recommendations present the points one must observe in order mitigate as much as possible the problems that are inherent to Excel usage.\nThe document can be downloaded here",
     "crumbs": [
       "Home",
-      "Guidance",
-      "Data sharing"
+      "Tutorials",
+      "Recommendations for compiling database in Excel"
     ]
   },
   {
-    "objectID": "baselinetables.html",
-    "href": "baselinetables.html",
-    "title": "Make a baseline table",
+    "objectID": "courses.html",
+    "href": "courses.html",
+    "title": "Courses",
     "section": "",
-    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\nInformation presented in this website is updated twice a year. Where possible, a website is indicated where users can find complete and up-to-date description of the training.\nInstitutions are responsible for the quality of the training opportunities they provide.\n\n\nThis page provides a (non-exhaustive) list of statistically oriented courses that are held in Switzerland. A more general overview of clinical research training opportunities of the SCTO’s Clinical Trial Unit (CTU) Network can be found on the Clinical Research Careers website\n\n\nCourses are run in the following approximate locations:",
     "crumbs": [
       "Home",
-      "Tutorials",
-      "Make a baseline table"
-    ]
-  },
-  {
-    "objectID": "baselinetables.html#in-r",
-    "href": "baselinetables.html#in-r",
-    "title": "Make a baseline table",
-    "section": "In R",
-    "text": "In R\n\nData\n\nlibrary(dplyr)\nlibrary(Hmisc)\ndata(mtcars)\nmtcars$am_f &lt;- factor(mtcars$am, 0:1, c(\"Manual\", \"Automatic\")) \nmtcars$vs_f &lt;- factor(mtcars$vs, 0:1, c(\"V\", \"Straight\")) \nd &lt;- mtcars %&gt;%  select(mpg, cyl, am_f,vs_f)\nHmisc::label(d$mpg) &lt;- \"Miles per gallon\"\nHmisc::label(d$cyl) &lt;- \"Cylinders\"\nHmisc::label(d$am_f) &lt;- \"Transmission\"\nHmisc::label(d$vs_f) &lt;- \"Engine\"\n\n\n\nUsing gtsummary\n\n#Make a table stratified by transmission\nlibrary(gtsummary)\nd %&gt;%  tbl_summary(by = am_f)\n\n\n\n\n\n\n\n\n\n\n\n\nCharacteristic\nManual, N = 191\nAutomatic, N = 131\n\n\n\n\nMiles per gallon\n17.3 (15.0, 19.2)\n22.8 (21.0, 30.4)\n\n\nCylinders\n\n\n\n\n\n\n    4\n3 (16%)\n8 (62%)\n\n\n    6\n4 (21%)\n3 (23%)\n\n\n    8\n12 (63%)\n2 (15%)\n\n\nEngine\n\n\n\n\n\n\n    V\n12 (63%)\n6 (46%)\n\n\n    Straight\n7 (37%)\n7 (54%)\n\n\n\n1 Median (IQR); n (%)\n\n\n\n\n\n\n\n\nThis is the basic usage:\n\nvariable types are automatically detected so that appropriate descriptive statistics are calculated,\nlabel attributes from the data set are automatically printed,\nmissing values are listed as “Unknown” in the table,\nvariable levels are indented and footnotes are added.\n\nDefaults options may be customized.\n\n# declare cylinders as a continuous variable,\n# for this variable calculate the mean and sd value,\n# add an overall column, \n# change the missing text\nd %&gt;%\n        tbl_summary(by = am_f, \n                    type = list(cyl ~ 'continuous'),\n                    statistic = list(cyl ~ \"{mean} ({sd})\"),\n                    missing_text = \"Missing\") %&gt;%\n        add_overall()\n\n\n\n\n\n\n\n\n\n\n\n\n\nCharacteristic\nOverall, N = 321\nManual, N = 191\nAutomatic, N = 131\n\n\n\n\nMiles per gallon\n19.2 (15.4, 22.8)\n17.3 (15.0, 19.2)\n22.8 (21.0, 30.4)\n\n\nCylinders\n6.19 (1.79)\n6.95 (1.54)\n5.08 (1.55)\n\n\nEngine\n\n\n\n\n\n\n\n\n    V\n18 (56%)\n12 (63%)\n6 (46%)\n\n\n    Straight\n14 (44%)\n7 (37%)\n7 (54%)\n\n\n\n1 Median (IQR); Mean (SD); n (%)\n\n\n\n\n\n\n\n\n\nAdditional information\nOnce produced gtsummary tables can be converted to your favorite format (e.g. html/pdf/word).\nFor more information see here. For detailed tutorial and additional options see the very complete vignette and website\n\n\n\nUsing atable\n\nlibrary(atable)\ntable1=atable(d,\n       target_cols = c(\"mpg\" , \"cyl\" , \"vs_f\"),\n       group_col = \"am_f\",\n       format_to=\"Word\")\n\n#Or similar using the formula interface\n## Not run: \ntable1=atable(mpg+cyl+ vs_f ~ am_f, d,format_to=\"Word\")\n## End(Not run)\n\ntable1\n\n                   Group    Manual Automatic      p stat   Effect Size (CI)\n1          Observations                                                    \n2                               19        13   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n3  Miles per gallon                                                        \n4              Mean (SD)  17 (3.8)  24 (6.2) 0.0019 0.64 -1.5 (-2.3; -0.65)\n5        valid (missing)    19 (0)    13 (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n6             Cylinders                                                    \n7              Mean (SD) 6.9 (1.5) 5.1 (1.6)  0.013 0.48      1.2 (0.41; 2)\n8        valid (missing)    19 (0)    13 (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n9                Engine                                                    \n10                     V  63% (12)   46% (6)   0.56 0.35       2 (0.38; 11)\n11              Straight   37% (7)   54% (7)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n12               missing    0% (0)    0% (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n\n\nBy default atable is printing p-values, test statistics as well as effect sizes with a 95% confidence interval. As stated above, baseline tables are descriptive tables and should not contain this type of information. Don’t forget to remove the columns.\n\ntable1=table1%&gt;%select(-\"p\",-\"stat\",-\"Effect Size (CI)\")\ntable1\n\n                   Group    Manual Automatic\n1          Observations                     \n2                               19        13\n3  Miles per gallon                         \n4              Mean (SD)  17 (3.8)  24 (6.2)\n5        valid (missing)    19 (0)    13 (0)\n6             Cylinders                     \n7              Mean (SD) 6.9 (1.5) 5.1 (1.6)\n8        valid (missing)    19 (0)    13 (0)\n9                Engine                     \n10                     V  63% (12)   46% (6)\n11              Straight   37% (7)   54% (7)\n12               missing    0% (0)    0% (0)\n\n\nThe table may also be split up by strata. For example, we can decide to present separately the characteristics of car with a “V” or a “Straight” engine.\n\ntable1=atable(mpg+cyl  ~ am_f|vs_f , d,\n              format_to=\"Word\")\ntable1=table1%&gt;%select(-\"p\",-\"stat\",-\"Effect Size (CI)\")\ntable1\n\n                        Group    Manual Automatic\n1                         V                      \n2           Observations                         \n3                                    12         6\n4       Miles per gallon                         \n5                   Mean (SD)  15 (2.8)    20 (4)\n6             valid (missing)    12 (0)     6 (0)\n7                  Cylinders                     \n8                   Mean (SD)     8 (0) 6.3 (1.5)\n9             valid (missing)    12 (0)     6 (0)\n10                 Straight                      \n11          Observations                         \n12                                    7         7\n13      Miles per gallon                         \n14                  Mean (SD)  21 (2.5)  28 (4.8)\n15            valid (missing)     7 (0)     7 (0)\n16                 Cylinders                     \n17                  Mean (SD) 5.1 (1.1)     4 (0)\n18            valid (missing)     7 (0)     7 (0)\n\n\nAs gtsummary, atable may be exported in different formats (e.g. LATEX, HTML, Word) and it is intended that some parts of atable can be altered by the user. For more details see Ströbel (2019) as well as the package vignette. An other informative vignette can be found by typing the following command in R:\n\nvignette(\"modifying\", package = \"atable\")",
-    "crumbs": [
-      "Home",
-      "Tutorials",
-      "Make a baseline table"
-    ]
-  },
-  {
-    "objectID": "baselinetables.html#in-stata",
-    "href": "baselinetables.html#in-stata",
-    "title": "Make a baseline table",
-    "section": "In Stata",
-    "text": "In Stata\n\nUsing btable\nThe table is constructed in a two-step approach using two functions: btable() produces an unformatted, raw table, which is then formatted by btable_format to produce a final, publication-ready table. By default, the raw table contains all summary measures, and—if there are two groups—effect measures and p-values. Optionally, the table can be restricted to effect measures of choice and a number of alternative calculations for confidence intervals are available.",
-    "crumbs": [
-      "Home",
-      "Tutorials",
-      "Make a baseline table"
-    ]
-  },
-  {
-    "objectID": "baselinetables.html#instalation",
-    "href": "baselinetables.html#instalation",
-    "title": "Make a baseline table",
-    "section": "Instalation",
-    "text": "Instalation\n\n#In order to install btable from github the github-package is required:\nnet install github, from(\"https://haghish.github.io/github/\")\n#You can then install the development version of btable with:\ngithub install CTU-Bern/btable",
-    "crumbs": [
-      "Home",
-      "Tutorials",
-      "Make a baseline table"
-    ]
-  },
-  {
-    "objectID": "baselinetables.html#example",
-    "href": "baselinetables.html#example",
-    "title": "Make a baseline table",
-    "section": "Example",
-    "text": "Example\n\n# load example dataset\nsysuse auto2\n# generate table\nbtable price mpg rep78 headroom, by(foreign) saving(\"excars\") denom(nonmiss)\n# format table (default formatting, removing the effect measures and P-values)\nbtable_format using \"excars\", clear drop(effect test)\n\n\nThe formatting option can be modified. For example we can decide we may want to\n\npresent the median and lower and upper quartiles instead of the mean and standard deviation\nremove the overall column, and the information column\n\n\n#If we want to display median [lq, up] for all the continuous variables\nbtable_format using \"excars\", clear descriptive(conti median [lq, uq]) drop(effect test total info)\n#If we want to display mean (sd) for the mpg variable and median [lq, up] for all the other continuous variables\nbtable_format using \"excars\", clear desc(conti median [lq, uq] mpg mean (sd)) drop(effect test total info)\n\n\n\n Domestic (N = 52)Foreign (N = 22)mean (sd), median [lq, uq] or n (%)mean (sd), median [lq, uq] or n (%)Price4783 [4184, 6234]5759 [4499, 7140]Mileage (mpg)20 (4.7)25 (6.6)Repair Record 1978Poor2 (4.2%)0 (0.00%)Fair8 (17%)0 (0.00%)Average27 (56%)3 (14%)Good9 (19%)9 (43%)Excellent2 (4.2%)9 (43%)Headroom (in.)3.5 [2.3, 4.0]2.5 [2.5, 3.0]",
-    "crumbs": [
-      "Home",
-      "Tutorials",
-      "Make a baseline table"
-    ]
-  },
-  {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About us & contact",
-    "section": "",
-    "text": "About us\nThis site was developed by statisticians of the SCTO Statistics & Methodology Platform.\nThe SCTO Statistics & Methodology Platform is a network of statisticians working in Swiss Clinical Trial Units, universities, and cantonal hospitals. As part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. More information can be found on the Tools & Resources website by the SCTO Platforms.\n\n\nGet in touch with us\nDo you have any questions or suggestions? Feel free to contact us using the form here.\nDirect support for clinical studies and research projects can also be provided by your local CTU:\n\nDKF Basel\nCTU Bern\nCRC Geneva\nCRC Lausanne\nCTU-EOC Lugano\nCTU St.Gallen\nCTC Zürich",
-    "crumbs": [
-      "Home",
-      "About us & contact"
+      "Courses"
     ]
   },
   {
@@ -249,14 +201,86 @@
     ]
   },
   {
-    "objectID": "courses.html",
-    "href": "courses.html",
-    "title": "Courses",
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About us & contact",
     "section": "",
-    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\nInformation presented in this website is updated twice a year. Where possible, a website is indicated where users can find complete and up-to-date description of the training.\nInstitutions are responsible for the quality of the training opportunities they provide.\n\n\nThis page provides a (non-exhaustive) list of statistically oriented courses that are held in Switzerland. A more general overview of clinical research training opportunities of the SCTO’s Clinical Trial Unit (CTU) Network can be found on the Clinical Research Careers website\n\n\nCourses are run in the following approximate locations:",
+    "text": "About us\nThis site was developed by statisticians of the SCTO Statistics & Methodology Platform.\nThe SCTO Statistics & Methodology Platform is a network of statisticians working in Swiss Clinical Trial Units, universities, and cantonal hospitals. As part of the Swiss Clinical Trial Organisation (SCTO) network we are connected with other platforms (auditing, data management, education, monitoring, project management, regulatory affairs, safety) providing innovative tools for clinical research professionals. More information can be found on the Tools & Resources website by the SCTO Platforms.\n\n\nGet in touch with us\nDo you have any questions or suggestions? Feel free to contact us using the form here.\nDirect support for clinical studies and research projects can also be provided by your local CTU:\n\nDKF Basel\nCTU Bern\nCRC Geneva\nCRC Lausanne\nCTU-EOC Lugano\nCTU St.Gallen\nCTC Zürich",
     "crumbs": [
       "Home",
-      "Courses"
+      "About us & contact"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html",
+    "href": "baselinetables.html",
+    "title": "Make a baseline table",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html#in-r",
+    "href": "baselinetables.html#in-r",
+    "title": "Make a baseline table",
+    "section": "In R",
+    "text": "In R\n\nData\n\nlibrary(dplyr)\nlibrary(Hmisc)\ndata(mtcars)\nmtcars$am_f &lt;- factor(mtcars$am, 0:1, c(\"Manual\", \"Automatic\")) \nmtcars$vs_f &lt;- factor(mtcars$vs, 0:1, c(\"V\", \"Straight\")) \nd &lt;- mtcars %&gt;%  select(mpg, cyl, am_f,vs_f)\nHmisc::label(d$mpg) &lt;- \"Miles per gallon\"\nHmisc::label(d$cyl) &lt;- \"Cylinders\"\nHmisc::label(d$am_f) &lt;- \"Transmission\"\nHmisc::label(d$vs_f) &lt;- \"Engine\"\n\n\n\nUsing gtsummary\n\n#Make a table stratified by transmission\nlibrary(gtsummary)\nd %&gt;%  tbl_summary(by = am_f)\n\n\n\n\n\n\n\n\n\n\n\n\nCharacteristic\nManual, N = 191\nAutomatic, N = 131\n\n\n\n\nMiles per gallon\n17.3 (15.0, 19.2)\n22.8 (21.0, 30.4)\n\n\nCylinders\n\n\n\n\n\n\n    4\n3 (16%)\n8 (62%)\n\n\n    6\n4 (21%)\n3 (23%)\n\n\n    8\n12 (63%)\n2 (15%)\n\n\nEngine\n\n\n\n\n\n\n    V\n12 (63%)\n6 (46%)\n\n\n    Straight\n7 (37%)\n7 (54%)\n\n\n\n1 Median (IQR); n (%)\n\n\n\n\n\n\n\n\nThis is the basic usage:\n\nvariable types are automatically detected so that appropriate descriptive statistics are calculated,\nlabel attributes from the data set are automatically printed,\nmissing values are listed as “Unknown” in the table,\nvariable levels are indented and footnotes are added.\n\nDefaults options may be customized.\n\n# declare cylinders as a continuous variable,\n# for this variable calculate the mean and sd value,\n# add an overall column, \n# change the missing text\nd %&gt;%\n        tbl_summary(by = am_f, \n                    type = list(cyl ~ 'continuous'),\n                    statistic = list(cyl ~ \"{mean} ({sd})\"),\n                    missing_text = \"Missing\") %&gt;%\n        add_overall()\n\n\n\n\n\n\n\n\n\n\n\n\n\nCharacteristic\nOverall, N = 321\nManual, N = 191\nAutomatic, N = 131\n\n\n\n\nMiles per gallon\n19.2 (15.4, 22.8)\n17.3 (15.0, 19.2)\n22.8 (21.0, 30.4)\n\n\nCylinders\n6.19 (1.79)\n6.95 (1.54)\n5.08 (1.55)\n\n\nEngine\n\n\n\n\n\n\n\n\n    V\n18 (56%)\n12 (63%)\n6 (46%)\n\n\n    Straight\n14 (44%)\n7 (37%)\n7 (54%)\n\n\n\n1 Median (IQR); Mean (SD); n (%)\n\n\n\n\n\n\n\n\n\nAdditional information\nOnce produced gtsummary tables can be converted to your favorite format (e.g. html/pdf/word).\nFor more information see here. For detailed tutorial and additional options see the very complete vignette and website\n\n\n\nUsing atable\n\nlibrary(atable)\ntable1=atable(d,\n       target_cols = c(\"mpg\" , \"cyl\" , \"vs_f\"),\n       group_col = \"am_f\",\n       format_to=\"Word\")\n\n#Or similar using the formula interface\n## Not run: \ntable1=atable(mpg+cyl+ vs_f ~ am_f, d,format_to=\"Word\")\n## End(Not run)\n\ntable1\n\n                   Group    Manual Automatic      p stat   Effect Size (CI)\n1          Observations                                                    \n2                               19        13   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n3  Miles per gallon                                                        \n4              Mean (SD)  17 (3.8)  24 (6.2) 0.0019 0.64 -1.5 (-2.3; -0.65)\n5        valid (missing)    19 (0)    13 (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n6             Cylinders                                                    \n7              Mean (SD) 6.9 (1.5) 5.1 (1.6)  0.013 0.48      1.2 (0.41; 2)\n8        valid (missing)    19 (0)    13 (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n9                Engine                                                    \n10                     V  63% (12)   46% (6)   0.56 0.35       2 (0.38; 11)\n11              Straight   37% (7)   54% (7)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n12               missing    0% (0)    0% (0)   &lt;NA&gt; &lt;NA&gt;               &lt;NA&gt;\n\n\nBy default atable is printing p-values, test statistics as well as effect sizes with a 95% confidence interval. As stated above, baseline tables are descriptive tables and should not contain this type of information. Don’t forget to remove the columns.\n\ntable1=table1%&gt;%select(-\"p\",-\"stat\",-\"Effect Size (CI)\")\ntable1\n\n                   Group    Manual Automatic\n1          Observations                     \n2                               19        13\n3  Miles per gallon                         \n4              Mean (SD)  17 (3.8)  24 (6.2)\n5        valid (missing)    19 (0)    13 (0)\n6             Cylinders                     \n7              Mean (SD) 6.9 (1.5) 5.1 (1.6)\n8        valid (missing)    19 (0)    13 (0)\n9                Engine                     \n10                     V  63% (12)   46% (6)\n11              Straight   37% (7)   54% (7)\n12               missing    0% (0)    0% (0)\n\n\nThe table may also be split up by strata. For example, we can decide to present separately the characteristics of car with a “V” or a “Straight” engine.\n\ntable1=atable(mpg+cyl  ~ am_f|vs_f , d,\n              format_to=\"Word\")\ntable1=table1%&gt;%select(-\"p\",-\"stat\",-\"Effect Size (CI)\")\ntable1\n\n                        Group    Manual Automatic\n1                         V                      \n2           Observations                         \n3                                    12         6\n4       Miles per gallon                         \n5                   Mean (SD)  15 (2.8)    20 (4)\n6             valid (missing)    12 (0)     6 (0)\n7                  Cylinders                     \n8                   Mean (SD)     8 (0) 6.3 (1.5)\n9             valid (missing)    12 (0)     6 (0)\n10                 Straight                      \n11          Observations                         \n12                                    7         7\n13      Miles per gallon                         \n14                  Mean (SD)  21 (2.5)  28 (4.8)\n15            valid (missing)     7 (0)     7 (0)\n16                 Cylinders                     \n17                  Mean (SD) 5.1 (1.1)     4 (0)\n18            valid (missing)     7 (0)     7 (0)\n\n\nAs gtsummary, atable may be exported in different formats (e.g. LATEX, HTML, Word) and it is intended that some parts of atable can be altered by the user. For more details see Ströbel (2019) as well as the package vignette. An other informative vignette can be found by typing the following command in R:\n\nvignette(\"modifying\", package = \"atable\")",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html#in-stata",
+    "href": "baselinetables.html#in-stata",
+    "title": "Make a baseline table",
+    "section": "In Stata",
+    "text": "In Stata\n\nUsing btable\nThe table is constructed in a two-step approach using two functions: btable() produces an unformatted, raw table, which is then formatted by btable_format to produce a final, publication-ready table. By default, the raw table contains all summary measures, and—if there are two groups—effect measures and p-values. Optionally, the table can be restricted to effect measures of choice and a number of alternative calculations for confidence intervals are available.",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html#instalation",
+    "href": "baselinetables.html#instalation",
+    "title": "Make a baseline table",
+    "section": "Instalation",
+    "text": "Instalation\n\n#In order to install btable from github the github-package is required:\nnet install github, from(\"https://haghish.github.io/github/\")\n#You can then install the development version of btable with:\ngithub install CTU-Bern/btable",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "baselinetables.html#example",
+    "href": "baselinetables.html#example",
+    "title": "Make a baseline table",
+    "section": "Example",
+    "text": "Example\n\n# load example dataset\nsysuse auto2\n# generate table\nbtable price mpg rep78 headroom, by(foreign) saving(\"excars\") denom(nonmiss)\n# format table (default formatting, removing the effect measures and P-values)\nbtable_format using \"excars\", clear drop(effect test)\n\n\nThe formatting option can be modified. For example we can decide we may want to\n\npresent the median and lower and upper quartiles instead of the mean and standard deviation\nremove the overall column, and the information column\n\n\n#If we want to display median [lq, up] for all the continuous variables\nbtable_format using \"excars\", clear descriptive(conti median [lq, uq]) drop(effect test total info)\n#If we want to display mean (sd) for the mpg variable and median [lq, up] for all the other continuous variables\nbtable_format using \"excars\", clear desc(conti median [lq, uq] mpg mean (sd)) drop(effect test total info)\n\n\n\n Domestic (N = 52)Foreign (N = 22)mean (sd), median [lq, uq] or n (%)mean (sd), median [lq, uq] or n (%)Price4783 [4184, 6234]5759 [4499, 7140]Mileage (mpg)20 (4.7)25 (6.6)Repair Record 1978Poor2 (4.2%)0 (0.00%)Fair8 (17%)0 (0.00%)Average27 (56%)3 (14%)Good9 (19%)9 (43%)Excellent2 (4.2%)9 (43%)Headroom (in.)3.5 [2.3, 4.0]2.5 [2.5, 3.0]",
+    "crumbs": [
+      "Home",
+      "Tutorials",
+      "Make a baseline table"
+    ]
+  },
+  {
+    "objectID": "DataSharing.html",
+    "href": "DataSharing.html",
+    "title": "Data sharing",
+    "section": "",
+    "text": "Warning\n\n\n\nThis page is under development. Changes should be expected.\n\n\nData sharing has become a requirement of many funding bodies and is becoming a scientific standard in many disciplines. In medical research, however, data sharing can conflict with clinicians’ obligation to protect patients’ privacy. Although general recommendations on data sharing already exist for clinical research, they are often not applicable to aspects specific to Switzerland. The guidance document from the SCTO’s CTU Network fills this gap: it provides practical recommendations for all relevant aspects of data sharing in accordance with legislation in Switzerland. Included in the guidelines are details of aspects are to be considered, decision-making criteria, examples, and checklists – all of which aim to support clinical research data sharing in practice.\nThe full guidance can be found onthe Tools & Resources website by the SCTO Platforms.",
+    "crumbs": [
+      "Home",
+      "Guidance",
+      "Data sharing"
     ]
   },
   {
