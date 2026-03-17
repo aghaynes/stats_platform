@@ -5,10 +5,10 @@ project:
 website:
   title: "Statistics and Methodology - tools and support"
   page-footer: CC-BY SCTO Statistics and Methodology
-  favicon: doc/SCTO_Platforms.png
+  favicon: doc/Red (3D)_RGB@2x.png
   navbar:
     # logo: docs/quarto.png
-    logo: doc/SCTO_Platforms.png
+    logo: doc/Red (3D)_RGB@2x.png
     background: white
     left:
       - text: Home
@@ -60,7 +60,7 @@ format:
   html:
     theme:
       light: flatly
-      dark: darkly
+      dark: [darkly, theme-dark.scss]
     css: styles.css
     toc: true
 
