@@ -45,6 +45,6 @@ This document is intended for anyone planning on compiling data into an Excel sh
 
 Many other tutorials are available. We notably recommend reading the ones published on the following websites:
 
--   [Center for Reproducible Science of the university of Zürich](https://www.crs.uzh.ch/en/resources/CRS-Primers.html)
+-   [Center for Reproducible Science and Research Synthesis](https://www.crs.uzh.ch/en.html)
 
--   [Epidemiology, Biostatistics and Prevention Institute of the university of Zürich](https://www.ebpi.uzh.ch/en/research/methodsexpertise.html) see "Resources" section at the end of the page.
+-   [Division Clinical Research Methods, Department of Biostatistics of the University of Zürich](https://www.ebpi.uzh.ch/en/research_methods/methodsexpertise.html) see "Resources" section at the end of the page.
